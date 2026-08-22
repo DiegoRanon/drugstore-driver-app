@@ -1,0 +1,4019 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Drugstore Delivery API",
+    "description": "B2B pharmacy delivery logistics. Carries no medical, pharmaceutical, or prescription data.",
+    "version": "1.0.0"
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "Access token from POST /v1/auth/login."
+      }
+    },
+    "schemas": {}
+  },
+  "paths": {
+    "/v1/auth/login": {
+      "post": {
+        "summary": "Unified admin/driver login",
+        "tags": [
+          "auth"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "format": "email",
+                    "maxLength": 255
+                  },
+                  "password": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200
+                  }
+                },
+                "required": [
+                  "email",
+                  "password"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "access_token": {
+                      "type": "string"
+                    },
+                    "refresh_token": {
+                      "type": "string"
+                    },
+                    "expires_in": {
+                      "type": "number"
+                    },
+                    "user": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "email": {
+                          "type": "string"
+                        },
+                        "role": {
+                          "type": "string",
+                          "enum": [
+                            "admin",
+                            "driver"
+                          ]
+                        },
+                        "first_name": {
+                          "type": "string"
+                        },
+                        "last_name": {
+                          "type": "string"
+                        },
+                        "organization_id": {
+                          "type": "string",
+                          "format": "uuid"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "email",
+                        "role",
+                        "first_name",
+                        "last_name",
+                        "organization_id"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "access_token",
+                    "refresh_token",
+                    "expires_in",
+                    "user"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/auth/refresh": {
+      "post": {
+        "summary": "Rotate refresh token",
+        "tags": [
+          "auth"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "refresh_token": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "required": [
+                  "refresh_token"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "access_token": {
+                      "type": "string"
+                    },
+                    "refresh_token": {
+                      "type": "string"
+                    },
+                    "expires_in": {
+                      "type": "number"
+                    },
+                    "user": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "email": {
+                          "type": "string"
+                        },
+                        "role": {
+                          "type": "string",
+                          "enum": [
+                            "admin",
+                            "driver"
+                          ]
+                        },
+                        "first_name": {
+                          "type": "string"
+                        },
+                        "last_name": {
+                          "type": "string"
+                        },
+                        "organization_id": {
+                          "type": "string",
+                          "format": "uuid"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "email",
+                        "role",
+                        "first_name",
+                        "last_name",
+                        "organization_id"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "access_token",
+                    "refresh_token",
+                    "expires_in",
+                    "user"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/auth/logout": {
+      "post": {
+        "summary": "Revoke refresh token",
+        "tags": [
+          "auth"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "refresh_token": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "required": [
+                  "refresh_token"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "enum": [
+                    "null"
+                  ],
+                  "nullable": true
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/auth/register/driver": {
+      "post": {
+        "summary": "Register a driver with an invite code",
+        "tags": [
+          "auth"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "code": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 32
+                  },
+                  "email": {
+                    "type": "string",
+                    "format": "email",
+                    "maxLength": 255
+                  },
+                  "password": {
+                    "type": "string",
+                    "minLength": 12,
+                    "maxLength": 200
+                  },
+                  "first_name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100
+                  },
+                  "last_name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100
+                  },
+                  "phone": {
+                    "type": "string",
+                    "maxLength": 50
+                  }
+                },
+                "required": [
+                  "code",
+                  "email",
+                  "password",
+                  "first_name",
+                  "last_name"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "email": {
+                      "type": "string"
+                    },
+                    "organization_id": {
+                      "type": "string",
+                      "format": "uuid"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "email",
+                    "organization_id"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/auth/me": {
+      "get": {
+        "summary": "Current user and organization context",
+        "tags": [
+          "auth"
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "user": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "email": {
+                          "type": "string"
+                        },
+                        "role": {
+                          "type": "string",
+                          "enum": [
+                            "admin",
+                            "driver"
+                          ]
+                        },
+                        "first_name": {
+                          "type": "string"
+                        },
+                        "last_name": {
+                          "type": "string"
+                        },
+                        "phone": {
+                          "type": "string",
+                          "nullable": true
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "email",
+                        "role",
+                        "first_name",
+                        "last_name",
+                        "phone"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "organization": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "phone": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "timezone": {
+                          "type": "string"
+                        },
+                        "locale": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name",
+                        "phone",
+                        "timezone",
+                        "locale"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "user",
+                    "organization"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/auth/password/change": {
+      "post": {
+        "summary": "Change own password",
+        "tags": [
+          "auth"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "current_password": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200
+                  },
+                  "new_password": {
+                    "type": "string",
+                    "minLength": 12,
+                    "maxLength": 200
+                  }
+                },
+                "required": [
+                  "current_password",
+                  "new_password"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "enum": [
+                    "null"
+                  ],
+                  "nullable": true
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/invites/": {
+      "post": {
+        "summary": "Generate a driver invite code",
+        "tags": [
+          "invites"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "expires_at": {
+                    "type": "string",
+                    "format": "date-time"
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "is_active": {
+                      "type": "boolean"
+                    },
+                    "expires_at": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "redeemed_at": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "created_at": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "code",
+                    "is_active",
+                    "expires_at",
+                    "redeemed_at",
+                    "created_at"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "summary": "List invite codes for this organization",
+        "tags": [
+          "invites"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ]
+            },
+            "in": "query",
+            "name": "is_active",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200,
+              "default": 50
+            },
+            "in": "query",
+            "name": "limit",
+            "required": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "code": {
+                            "type": "string"
+                          },
+                          "is_active": {
+                            "type": "boolean"
+                          },
+                          "expires_at": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "redeemed_at": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "created_at": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "code",
+                          "is_active",
+                          "expires_at",
+                          "redeemed_at",
+                          "created_at"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/invites/{id}": {
+      "delete": {
+        "summary": "Deactivate an unredeemed invite code",
+        "tags": [
+          "invites"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "enum": [
+                    "null"
+                  ],
+                  "nullable": true
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/clients/": {
+      "get": {
+        "summary": "List saved clients",
+        "tags": [
+          "clients"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            },
+            "in": "query",
+            "name": "search",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ]
+            },
+            "in": "query",
+            "name": "is_active",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200,
+              "default": 50
+            },
+            "in": "query",
+            "name": "limit",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "cursor",
+            "required": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "address": {
+                            "type": "string"
+                          },
+                          "phone_number": {
+                            "type": "string"
+                          },
+                          "notes": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "is_active": {
+                            "type": "boolean"
+                          },
+                          "created_at": {
+                            "type": "string"
+                          },
+                          "updated_at": {
+                            "type": "string"
+                          },
+                          "compliance_reminder": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name",
+                          "address",
+                          "phone_number",
+                          "notes",
+                          "is_active",
+                          "created_at",
+                          "updated_at"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "next_cursor": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "has_more": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "next_cursor",
+                    "has_more"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Create a client",
+        "tags": [
+          "clients"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 255
+                  },
+                  "address": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 500
+                  },
+                  "phone_number": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 50
+                  },
+                  "notes": {
+                    "type": "string",
+                    "maxLength": 500,
+                    "nullable": true
+                  }
+                },
+                "required": [
+                  "name",
+                  "address",
+                  "phone_number"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "address": {
+                      "type": "string"
+                    },
+                    "phone_number": {
+                      "type": "string"
+                    },
+                    "notes": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "is_active": {
+                      "type": "boolean"
+                    },
+                    "created_at": {
+                      "type": "string"
+                    },
+                    "updated_at": {
+                      "type": "string"
+                    },
+                    "compliance_reminder": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "address",
+                    "phone_number",
+                    "notes",
+                    "is_active",
+                    "created_at",
+                    "updated_at"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/clients/{id}": {
+      "get": {
+        "summary": "Get a client",
+        "tags": [
+          "clients"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "address": {
+                      "type": "string"
+                    },
+                    "phone_number": {
+                      "type": "string"
+                    },
+                    "notes": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "is_active": {
+                      "type": "boolean"
+                    },
+                    "created_at": {
+                      "type": "string"
+                    },
+                    "updated_at": {
+                      "type": "string"
+                    },
+                    "compliance_reminder": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "address",
+                    "phone_number",
+                    "notes",
+                    "is_active",
+                    "created_at",
+                    "updated_at"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "summary": "Update a client",
+        "tags": [
+          "clients"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 255
+                  },
+                  "address": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 500
+                  },
+                  "phone_number": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 50
+                  },
+                  "notes": {
+                    "type": "string",
+                    "maxLength": 500,
+                    "nullable": true
+                  },
+                  "is_active": {
+                    "type": "boolean"
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "address": {
+                      "type": "string"
+                    },
+                    "phone_number": {
+                      "type": "string"
+                    },
+                    "notes": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "is_active": {
+                      "type": "boolean"
+                    },
+                    "created_at": {
+                      "type": "string"
+                    },
+                    "updated_at": {
+                      "type": "string"
+                    },
+                    "compliance_reminder": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "address",
+                    "phone_number",
+                    "notes",
+                    "is_active",
+                    "created_at",
+                    "updated_at"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Deactivate a client (soft delete)",
+        "tags": [
+          "clients"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "enum": [
+                    "null"
+                  ],
+                  "nullable": true
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/orders/": {
+      "post": {
+        "summary": "Create a delivery, snapshotting client details",
+        "tags": [
+          "orders"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "client_id": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "driver_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "nullable": true
+                  },
+                  "patient_name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 255
+                  },
+                  "address": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 500
+                  },
+                  "phone_number": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 50
+                  },
+                  "delivery_date": {
+                    "type": "string",
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+                  },
+                  "delivery_window": {
+                    "type": "string",
+                    "enum": [
+                      "AM",
+                      "PM"
+                    ]
+                  },
+                  "payment_status": {
+                    "type": "string",
+                    "enum": [
+                      "paid",
+                      "unpaid"
+                    ]
+                  },
+                  "amount_due": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 99999999.99,
+                    "nullable": true
+                  },
+                  "requires_cooler_bag": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "client_id",
+                  "delivery_date",
+                  "delivery_window"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "client_id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "driver_id": {
+                      "type": "string",
+                      "format": "uuid",
+                      "nullable": true
+                    },
+                    "patient_name": {
+                      "type": "string"
+                    },
+                    "address": {
+                      "type": "string"
+                    },
+                    "phone_number": {
+                      "type": "string"
+                    },
+                    "delivery_date": {
+                      "type": "string"
+                    },
+                    "delivery_window": {
+                      "type": "string",
+                      "enum": [
+                        "AM",
+                        "PM"
+                      ]
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "in_pharmacy",
+                        "picked_up",
+                        "completed",
+                        "returned",
+                        "cancelled"
+                      ]
+                    },
+                    "sequence_number": {
+                      "type": "number",
+                      "nullable": true
+                    },
+                    "payment_status": {
+                      "type": "string",
+                      "enum": [
+                        "paid",
+                        "unpaid"
+                      ]
+                    },
+                    "payment_collected": {
+                      "type": "boolean"
+                    },
+                    "payment_method": {
+                      "type": "string",
+                      "enum": [
+                        "cash",
+                        "card"
+                      ],
+                      "nullable": true
+                    },
+                    "amount_due": {
+                      "type": "number",
+                      "nullable": true
+                    },
+                    "amount_collected": {
+                      "type": "number",
+                      "nullable": true
+                    },
+                    "requires_cooler_bag": {
+                      "type": "boolean"
+                    },
+                    "cooler_bag_confirmed": {
+                      "type": "boolean",
+                      "nullable": true
+                    },
+                    "picked_up_at": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "completed_at": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "returned_at": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "cancelled_at": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "created_at": {
+                      "type": "string"
+                    },
+                    "updated_at": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "client_id",
+                    "driver_id",
+                    "patient_name",
+                    "address",
+                    "phone_number",
+                    "delivery_date",
+                    "delivery_window",
+                    "status",
+                    "sequence_number",
+                    "payment_status",
+                    "payment_collected",
+                    "payment_method",
+                    "amount_due",
+                    "amount_collected",
+                    "requires_cooler_bag",
+                    "cooler_bag_confirmed",
+                    "picked_up_at",
+                    "completed_at",
+                    "returned_at",
+                    "cancelled_at",
+                    "created_at",
+                    "updated_at"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "summary": "Logistical history view",
+        "tags": [
+          "orders"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+            },
+            "in": "query",
+            "name": "date",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "in_pharmacy",
+                "picked_up",
+                "completed",
+                "returned",
+                "cancelled"
+              ]
+            },
+            "in": "query",
+            "name": "status",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "in": "query",
+            "name": "driver_id",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "in": "query",
+            "name": "client_id",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "in": "query",
+            "name": "updated_since",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200,
+              "default": 50
+            },
+            "in": "query",
+            "name": "limit",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "cursor",
+            "required": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "client_id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "driver_id": {
+                            "type": "string",
+                            "format": "uuid",
+                            "nullable": true
+                          },
+                          "patient_name": {
+                            "type": "string"
+                          },
+                          "address": {
+                            "type": "string"
+                          },
+                          "phone_number": {
+                            "type": "string"
+                          },
+                          "delivery_date": {
+                            "type": "string"
+                          },
+                          "delivery_window": {
+                            "type": "string",
+                            "enum": [
+                              "AM",
+                              "PM"
+                            ]
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "in_pharmacy",
+                              "picked_up",
+                              "completed",
+                              "returned",
+                              "cancelled"
+                            ]
+                          },
+                          "sequence_number": {
+                            "type": "number",
+                            "nullable": true
+                          },
+                          "payment_status": {
+                            "type": "string",
+                            "enum": [
+                              "paid",
+                              "unpaid"
+                            ]
+                          },
+                          "payment_collected": {
+                            "type": "boolean"
+                          },
+                          "payment_method": {
+                            "type": "string",
+                            "enum": [
+                              "cash",
+                              "card"
+                            ],
+                            "nullable": true
+                          },
+                          "amount_due": {
+                            "type": "number",
+                            "nullable": true
+                          },
+                          "amount_collected": {
+                            "type": "number",
+                            "nullable": true
+                          },
+                          "requires_cooler_bag": {
+                            "type": "boolean"
+                          },
+                          "cooler_bag_confirmed": {
+                            "type": "boolean",
+                            "nullable": true
+                          },
+                          "picked_up_at": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "completed_at": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "returned_at": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "cancelled_at": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "created_at": {
+                            "type": "string"
+                          },
+                          "updated_at": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "client_id",
+                          "driver_id",
+                          "patient_name",
+                          "address",
+                          "phone_number",
+                          "delivery_date",
+                          "delivery_window",
+                          "status",
+                          "sequence_number",
+                          "payment_status",
+                          "payment_collected",
+                          "payment_method",
+                          "amount_due",
+                          "amount_collected",
+                          "requires_cooler_bag",
+                          "cooler_bag_confirmed",
+                          "picked_up_at",
+                          "completed_at",
+                          "returned_at",
+                          "cancelled_at",
+                          "created_at",
+                          "updated_at"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "next_cursor": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "has_more": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "next_cursor",
+                    "has_more"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/orders/{id}": {
+      "get": {
+        "summary": "Order detail with its status timeline",
+        "tags": [
+          "orders"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "client_id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "driver_id": {
+                      "type": "string",
+                      "format": "uuid",
+                      "nullable": true
+                    },
+                    "patient_name": {
+                      "type": "string"
+                    },
+                    "address": {
+                      "type": "string"
+                    },
+                    "phone_number": {
+                      "type": "string"
+                    },
+                    "delivery_date": {
+                      "type": "string"
+                    },
+                    "delivery_window": {
+                      "type": "string",
+                      "enum": [
+                        "AM",
+                        "PM"
+                      ]
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "in_pharmacy",
+                        "picked_up",
+                        "completed",
+                        "returned",
+                        "cancelled"
+                      ]
+                    },
+                    "sequence_number": {
+                      "type": "number",
+                      "nullable": true
+                    },
+                    "payment_status": {
+                      "type": "string",
+                      "enum": [
+                        "paid",
+                        "unpaid"
+                      ]
+                    },
+                    "payment_collected": {
+                      "type": "boolean"
+                    },
+                    "payment_method": {
+                      "type": "string",
+                      "enum": [
+                        "cash",
+                        "card"
+                      ],
+                      "nullable": true
+                    },
+                    "amount_due": {
+                      "type": "number",
+                      "nullable": true
+                    },
+                    "amount_collected": {
+                      "type": "number",
+                      "nullable": true
+                    },
+                    "requires_cooler_bag": {
+                      "type": "boolean"
+                    },
+                    "cooler_bag_confirmed": {
+                      "type": "boolean",
+                      "nullable": true
+                    },
+                    "picked_up_at": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "completed_at": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "returned_at": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "cancelled_at": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "created_at": {
+                      "type": "string"
+                    },
+                    "updated_at": {
+                      "type": "string"
+                    },
+                    "status_events": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "in_pharmacy",
+                              "picked_up",
+                              "completed",
+                              "returned",
+                              "cancelled"
+                            ]
+                          },
+                          "changed_by_user_id": {
+                            "type": "string",
+                            "format": "uuid",
+                            "nullable": true
+                          },
+                          "occurred_at": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "status",
+                          "changed_by_user_id",
+                          "occurred_at"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "available_transitions": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "pickup",
+                          "complete",
+                          "return",
+                          "cancel"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "client_id",
+                    "driver_id",
+                    "patient_name",
+                    "address",
+                    "phone_number",
+                    "delivery_date",
+                    "delivery_window",
+                    "status",
+                    "sequence_number",
+                    "payment_status",
+                    "payment_collected",
+                    "payment_method",
+                    "amount_due",
+                    "amount_collected",
+                    "requires_cooler_bag",
+                    "cooler_bag_confirmed",
+                    "picked_up_at",
+                    "completed_at",
+                    "returned_at",
+                    "cancelled_at",
+                    "created_at",
+                    "updated_at",
+                    "status_events",
+                    "available_transitions"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "summary": "Edit an order (only while in_pharmacy)",
+        "tags": [
+          "orders"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "patient_name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 255
+                  },
+                  "address": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 500
+                  },
+                  "phone_number": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 50
+                  },
+                  "delivery_date": {
+                    "type": "string",
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+                  },
+                  "delivery_window": {
+                    "type": "string",
+                    "enum": [
+                      "AM",
+                      "PM"
+                    ]
+                  },
+                  "payment_status": {
+                    "type": "string",
+                    "enum": [
+                      "paid",
+                      "unpaid"
+                    ]
+                  },
+                  "amount_due": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 99999999.99,
+                    "nullable": true
+                  },
+                  "requires_cooler_bag": {
+                    "type": "boolean"
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "client_id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "driver_id": {
+                      "type": "string",
+                      "format": "uuid",
+                      "nullable": true
+                    },
+                    "patient_name": {
+                      "type": "string"
+                    },
+                    "address": {
+                      "type": "string"
+                    },
+                    "phone_number": {
+                      "type": "string"
+                    },
+                    "delivery_date": {
+                      "type": "string"
+                    },
+                    "delivery_window": {
+                      "type": "string",
+                      "enum": [
+                        "AM",
+                        "PM"
+                      ]
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "in_pharmacy",
+                        "picked_up",
+                        "completed",
+                        "returned",
+                        "cancelled"
+                      ]
+                    },
+                    "sequence_number": {
+                      "type": "number",
+                      "nullable": true
+                    },
+                    "payment_status": {
+                      "type": "string",
+                      "enum": [
+                        "paid",
+                        "unpaid"
+                      ]
+                    },
+                    "payment_collected": {
+                      "type": "boolean"
+                    },
+                    "payment_method": {
+                      "type": "string",
+                      "enum": [
+                        "cash",
+                        "card"
+                      ],
+                      "nullable": true
+                    },
+                    "amount_due": {
+                      "type": "number",
+                      "nullable": true
+                    },
+                    "amount_collected": {
+                      "type": "number",
+                      "nullable": true
+                    },
+                    "requires_cooler_bag": {
+                      "type": "boolean"
+                    },
+                    "cooler_bag_confirmed": {
+                      "type": "boolean",
+                      "nullable": true
+                    },
+                    "picked_up_at": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "completed_at": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "returned_at": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "cancelled_at": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "created_at": {
+                      "type": "string"
+                    },
+                    "updated_at": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "client_id",
+                    "driver_id",
+                    "patient_name",
+                    "address",
+                    "phone_number",
+                    "delivery_date",
+                    "delivery_window",
+                    "status",
+                    "sequence_number",
+                    "payment_status",
+                    "payment_collected",
+                    "payment_method",
+                    "amount_due",
+                    "amount_collected",
+                    "requires_cooler_bag",
+                    "cooler_bag_confirmed",
+                    "picked_up_at",
+                    "completed_at",
+                    "returned_at",
+                    "cancelled_at",
+                    "created_at",
+                    "updated_at"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/orders/{id}/assign": {
+      "post": {
+        "summary": "Assign or reassign a driver",
+        "tags": [
+          "orders"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "driver_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "nullable": true
+                  }
+                },
+                "required": [
+                  "driver_id"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "client_id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "driver_id": {
+                      "type": "string",
+                      "format": "uuid",
+                      "nullable": true
+                    },
+                    "patient_name": {
+                      "type": "string"
+                    },
+                    "address": {
+                      "type": "string"
+                    },
+                    "phone_number": {
+                      "type": "string"
+                    },
+                    "delivery_date": {
+                      "type": "string"
+                    },
+                    "delivery_window": {
+                      "type": "string",
+                      "enum": [
+                        "AM",
+                        "PM"
+                      ]
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "in_pharmacy",
+                        "picked_up",
+                        "completed",
+                        "returned",
+                        "cancelled"
+                      ]
+                    },
+                    "sequence_number": {
+                      "type": "number",
+                      "nullable": true
+                    },
+                    "payment_status": {
+                      "type": "string",
+                      "enum": [
+                        "paid",
+                        "unpaid"
+                      ]
+                    },
+                    "payment_collected": {
+                      "type": "boolean"
+                    },
+                    "payment_method": {
+                      "type": "string",
+                      "enum": [
+                        "cash",
+                        "card"
+                      ],
+                      "nullable": true
+                    },
+                    "amount_due": {
+                      "type": "number",
+                      "nullable": true
+                    },
+                    "amount_collected": {
+                      "type": "number",
+                      "nullable": true
+                    },
+                    "requires_cooler_bag": {
+                      "type": "boolean"
+                    },
+                    "cooler_bag_confirmed": {
+                      "type": "boolean",
+                      "nullable": true
+                    },
+                    "picked_up_at": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "completed_at": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "returned_at": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "cancelled_at": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "created_at": {
+                      "type": "string"
+                    },
+                    "updated_at": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "client_id",
+                    "driver_id",
+                    "patient_name",
+                    "address",
+                    "phone_number",
+                    "delivery_date",
+                    "delivery_window",
+                    "status",
+                    "sequence_number",
+                    "payment_status",
+                    "payment_collected",
+                    "payment_method",
+                    "amount_due",
+                    "amount_collected",
+                    "requires_cooler_bag",
+                    "cooler_bag_confirmed",
+                    "picked_up_at",
+                    "completed_at",
+                    "returned_at",
+                    "cancelled_at",
+                    "created_at",
+                    "updated_at"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/orders/{id}/cancel": {
+      "post": {
+        "summary": "Cancel an order that never left the pharmacy",
+        "tags": [
+          "orders"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "client_id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "driver_id": {
+                      "type": "string",
+                      "format": "uuid",
+                      "nullable": true
+                    },
+                    "patient_name": {
+                      "type": "string"
+                    },
+                    "address": {
+                      "type": "string"
+                    },
+                    "phone_number": {
+                      "type": "string"
+                    },
+                    "delivery_date": {
+                      "type": "string"
+                    },
+                    "delivery_window": {
+                      "type": "string",
+                      "enum": [
+                        "AM",
+                        "PM"
+                      ]
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "in_pharmacy",
+                        "picked_up",
+                        "completed",
+                        "returned",
+                        "cancelled"
+                      ]
+                    },
+                    "sequence_number": {
+                      "type": "number",
+                      "nullable": true
+                    },
+                    "payment_status": {
+                      "type": "string",
+                      "enum": [
+                        "paid",
+                        "unpaid"
+                      ]
+                    },
+                    "payment_collected": {
+                      "type": "boolean"
+                    },
+                    "payment_method": {
+                      "type": "string",
+                      "enum": [
+                        "cash",
+                        "card"
+                      ],
+                      "nullable": true
+                    },
+                    "amount_due": {
+                      "type": "number",
+                      "nullable": true
+                    },
+                    "amount_collected": {
+                      "type": "number",
+                      "nullable": true
+                    },
+                    "requires_cooler_bag": {
+                      "type": "boolean"
+                    },
+                    "cooler_bag_confirmed": {
+                      "type": "boolean",
+                      "nullable": true
+                    },
+                    "picked_up_at": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "completed_at": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "returned_at": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "cancelled_at": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "created_at": {
+                      "type": "string"
+                    },
+                    "updated_at": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "client_id",
+                    "driver_id",
+                    "patient_name",
+                    "address",
+                    "phone_number",
+                    "delivery_date",
+                    "delivery_window",
+                    "status",
+                    "sequence_number",
+                    "payment_status",
+                    "payment_collected",
+                    "payment_method",
+                    "amount_due",
+                    "amount_collected",
+                    "requires_cooler_bag",
+                    "cooler_bag_confirmed",
+                    "picked_up_at",
+                    "completed_at",
+                    "returned_at",
+                    "cancelled_at",
+                    "created_at",
+                    "updated_at"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/drivers/": {
+      "get": {
+        "summary": "List drivers in this organization",
+        "tags": [
+          "drivers"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            },
+            "in": "query",
+            "name": "search",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ]
+            },
+            "in": "query",
+            "name": "is_active",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200,
+              "default": 50
+            },
+            "in": "query",
+            "name": "limit",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "cursor",
+            "required": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "first_name": {
+                            "type": "string"
+                          },
+                          "last_name": {
+                            "type": "string"
+                          },
+                          "email": {
+                            "type": "string"
+                          },
+                          "phone": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "is_active": {
+                            "type": "boolean"
+                          },
+                          "created_at": {
+                            "type": "string"
+                          },
+                          "updated_at": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "first_name",
+                          "last_name",
+                          "email",
+                          "phone",
+                          "is_active",
+                          "created_at",
+                          "updated_at"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "next_cursor": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "has_more": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "next_cursor",
+                    "has_more"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/drivers/{id}": {
+      "get": {
+        "summary": "Get a driver",
+        "tags": [
+          "drivers"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "first_name": {
+                      "type": "string"
+                    },
+                    "last_name": {
+                      "type": "string"
+                    },
+                    "email": {
+                      "type": "string"
+                    },
+                    "phone": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "is_active": {
+                      "type": "boolean"
+                    },
+                    "created_at": {
+                      "type": "string"
+                    },
+                    "updated_at": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "first_name",
+                    "last_name",
+                    "email",
+                    "phone",
+                    "is_active",
+                    "created_at",
+                    "updated_at"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "summary": "Activate or deactivate a driver",
+        "tags": [
+          "drivers"
+        ],
+        "description": "Deactivating revokes the driver's refresh tokens immediately. Any orders still assigned to them are reported in active_order_count so they can be reassigned.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "is_active": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "is_active"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "first_name": {
+                      "type": "string"
+                    },
+                    "last_name": {
+                      "type": "string"
+                    },
+                    "email": {
+                      "type": "string"
+                    },
+                    "phone": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "is_active": {
+                      "type": "boolean"
+                    },
+                    "created_at": {
+                      "type": "string"
+                    },
+                    "updated_at": {
+                      "type": "string"
+                    },
+                    "active_order_count": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "first_name",
+                    "last_name",
+                    "email",
+                    "phone",
+                    "is_active",
+                    "created_at",
+                    "updated_at",
+                    "active_order_count"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/driver/queue": {
+      "get": {
+        "summary": "Active stops for a day, in route order",
+        "tags": [
+          "driver"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+            },
+            "in": "query",
+            "name": "date",
+            "required": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "date": {
+                      "type": "string"
+                    },
+                    "pharmacy": {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string"
+                        },
+                        "phone": {
+                          "type": "string",
+                          "nullable": true
+                        }
+                      },
+                      "required": [
+                        "name",
+                        "phone"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "stops": {
+                      "type": "array",
+                      "items": {
+                        "anyOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "format": "uuid"
+                              },
+                              "status": {
+                                "type": "string",
+                                "enum": [
+                                  "in_pharmacy",
+                                  "picked_up"
+                                ]
+                              },
+                              "sequence_number": {
+                                "type": "number",
+                                "nullable": true
+                              },
+                              "delivery_date": {
+                                "type": "string"
+                              },
+                              "delivery_window": {
+                                "type": "string",
+                                "enum": [
+                                  "AM",
+                                  "PM"
+                                ]
+                              },
+                              "patient_name": {
+                                "type": "string"
+                              },
+                              "address": {
+                                "type": "string"
+                              },
+                              "phone_number": {
+                                "type": "string"
+                              },
+                              "amount_due": {
+                                "type": "number",
+                                "nullable": true
+                              },
+                              "payment_status": {
+                                "type": "string",
+                                "enum": [
+                                  "paid",
+                                  "unpaid"
+                                ]
+                              },
+                              "payment_collected": {
+                                "type": "boolean"
+                              },
+                              "requires_cooler_bag": {
+                                "type": "boolean"
+                              },
+                              "picked_up_at": {
+                                "type": "string",
+                                "nullable": true
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "status",
+                              "sequence_number",
+                              "delivery_date",
+                              "delivery_window",
+                              "patient_name",
+                              "address",
+                              "phone_number",
+                              "amount_due",
+                              "payment_status",
+                              "payment_collected",
+                              "requires_cooler_bag",
+                              "picked_up_at"
+                            ],
+                            "additionalProperties": false
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "format": "uuid"
+                              },
+                              "status": {
+                                "type": "string",
+                                "enum": [
+                                  "completed",
+                                  "returned",
+                                  "cancelled"
+                                ]
+                              },
+                              "delivery_date": {
+                                "type": "string"
+                              },
+                              "picked_up_at": {
+                                "type": "string",
+                                "nullable": true
+                              },
+                              "completed_at": {
+                                "type": "string",
+                                "nullable": true
+                              },
+                              "returned_at": {
+                                "type": "string",
+                                "nullable": true
+                              },
+                              "requires_cooler_bag": {
+                                "type": "boolean"
+                              },
+                              "cooler_bag_confirmed": {
+                                "type": "boolean",
+                                "nullable": true
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "status",
+                              "delivery_date",
+                              "picked_up_at",
+                              "completed_at",
+                              "returned_at",
+                              "requires_cooler_bag",
+                              "cooler_bag_confirmed"
+                            ],
+                            "additionalProperties": false
+                          }
+                        ]
+                      }
+                    },
+                    "closed": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "completed",
+                              "returned",
+                              "cancelled"
+                            ]
+                          },
+                          "delivery_date": {
+                            "type": "string"
+                          },
+                          "picked_up_at": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "completed_at": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "returned_at": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "requires_cooler_bag": {
+                            "type": "boolean"
+                          },
+                          "cooler_bag_confirmed": {
+                            "type": "boolean",
+                            "nullable": true
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "status",
+                          "delivery_date",
+                          "picked_up_at",
+                          "completed_at",
+                          "returned_at",
+                          "requires_cooler_bag",
+                          "cooler_bag_confirmed"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "degraded": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "date",
+                    "pharmacy",
+                    "stops",
+                    "closed"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/driver/queue/optimize": {
+      "post": {
+        "summary": "Recalculate the optimal stop order",
+        "tags": [
+          "driver"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "date": {
+                    "type": "string",
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+                  },
+                  "current_location": {
+                    "type": "object",
+                    "properties": {
+                      "latitude": {
+                        "type": "number",
+                        "minimum": -90,
+                        "maximum": 90
+                      },
+                      "longitude": {
+                        "type": "number",
+                        "minimum": -180,
+                        "maximum": 180
+                      }
+                    },
+                    "required": [
+                      "latitude",
+                      "longitude"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "date": {
+                      "type": "string"
+                    },
+                    "pharmacy": {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string"
+                        },
+                        "phone": {
+                          "type": "string",
+                          "nullable": true
+                        }
+                      },
+                      "required": [
+                        "name",
+                        "phone"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "stops": {
+                      "type": "array",
+                      "items": {
+                        "anyOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "format": "uuid"
+                              },
+                              "status": {
+                                "type": "string",
+                                "enum": [
+                                  "in_pharmacy",
+                                  "picked_up"
+                                ]
+                              },
+                              "sequence_number": {
+                                "type": "number",
+                                "nullable": true
+                              },
+                              "delivery_date": {
+                                "type": "string"
+                              },
+                              "delivery_window": {
+                                "type": "string",
+                                "enum": [
+                                  "AM",
+                                  "PM"
+                                ]
+                              },
+                              "patient_name": {
+                                "type": "string"
+                              },
+                              "address": {
+                                "type": "string"
+                              },
+                              "phone_number": {
+                                "type": "string"
+                              },
+                              "amount_due": {
+                                "type": "number",
+                                "nullable": true
+                              },
+                              "payment_status": {
+                                "type": "string",
+                                "enum": [
+                                  "paid",
+                                  "unpaid"
+                                ]
+                              },
+                              "payment_collected": {
+                                "type": "boolean"
+                              },
+                              "requires_cooler_bag": {
+                                "type": "boolean"
+                              },
+                              "picked_up_at": {
+                                "type": "string",
+                                "nullable": true
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "status",
+                              "sequence_number",
+                              "delivery_date",
+                              "delivery_window",
+                              "patient_name",
+                              "address",
+                              "phone_number",
+                              "amount_due",
+                              "payment_status",
+                              "payment_collected",
+                              "requires_cooler_bag",
+                              "picked_up_at"
+                            ],
+                            "additionalProperties": false
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "format": "uuid"
+                              },
+                              "status": {
+                                "type": "string",
+                                "enum": [
+                                  "completed",
+                                  "returned",
+                                  "cancelled"
+                                ]
+                              },
+                              "delivery_date": {
+                                "type": "string"
+                              },
+                              "picked_up_at": {
+                                "type": "string",
+                                "nullable": true
+                              },
+                              "completed_at": {
+                                "type": "string",
+                                "nullable": true
+                              },
+                              "returned_at": {
+                                "type": "string",
+                                "nullable": true
+                              },
+                              "requires_cooler_bag": {
+                                "type": "boolean"
+                              },
+                              "cooler_bag_confirmed": {
+                                "type": "boolean",
+                                "nullable": true
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "status",
+                              "delivery_date",
+                              "picked_up_at",
+                              "completed_at",
+                              "returned_at",
+                              "requires_cooler_bag",
+                              "cooler_bag_confirmed"
+                            ],
+                            "additionalProperties": false
+                          }
+                        ]
+                      }
+                    },
+                    "closed": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "completed",
+                              "returned",
+                              "cancelled"
+                            ]
+                          },
+                          "delivery_date": {
+                            "type": "string"
+                          },
+                          "picked_up_at": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "completed_at": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "returned_at": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "requires_cooler_bag": {
+                            "type": "boolean"
+                          },
+                          "cooler_bag_confirmed": {
+                            "type": "boolean",
+                            "nullable": true
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "status",
+                          "delivery_date",
+                          "picked_up_at",
+                          "completed_at",
+                          "returned_at",
+                          "requires_cooler_bag",
+                          "cooler_bag_confirmed"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "degraded": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "date",
+                    "pharmacy",
+                    "stops",
+                    "closed"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/driver/orders/{id}/pickup": {
+      "post": {
+        "summary": "Take custody of the package",
+        "tags": [
+          "driver"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "in_pharmacy",
+                            "picked_up"
+                          ]
+                        },
+                        "sequence_number": {
+                          "type": "number",
+                          "nullable": true
+                        },
+                        "delivery_date": {
+                          "type": "string"
+                        },
+                        "delivery_window": {
+                          "type": "string",
+                          "enum": [
+                            "AM",
+                            "PM"
+                          ]
+                        },
+                        "patient_name": {
+                          "type": "string"
+                        },
+                        "address": {
+                          "type": "string"
+                        },
+                        "phone_number": {
+                          "type": "string"
+                        },
+                        "amount_due": {
+                          "type": "number",
+                          "nullable": true
+                        },
+                        "payment_status": {
+                          "type": "string",
+                          "enum": [
+                            "paid",
+                            "unpaid"
+                          ]
+                        },
+                        "payment_collected": {
+                          "type": "boolean"
+                        },
+                        "requires_cooler_bag": {
+                          "type": "boolean"
+                        },
+                        "picked_up_at": {
+                          "type": "string",
+                          "nullable": true
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "status",
+                        "sequence_number",
+                        "delivery_date",
+                        "delivery_window",
+                        "patient_name",
+                        "address",
+                        "phone_number",
+                        "amount_due",
+                        "payment_status",
+                        "payment_collected",
+                        "requires_cooler_bag",
+                        "picked_up_at"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "completed",
+                            "returned",
+                            "cancelled"
+                          ]
+                        },
+                        "delivery_date": {
+                          "type": "string"
+                        },
+                        "picked_up_at": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "completed_at": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "returned_at": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "requires_cooler_bag": {
+                          "type": "boolean"
+                        },
+                        "cooler_bag_confirmed": {
+                          "type": "boolean",
+                          "nullable": true
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "status",
+                        "delivery_date",
+                        "picked_up_at",
+                        "completed_at",
+                        "returned_at",
+                        "requires_cooler_bag",
+                        "cooler_bag_confirmed"
+                      ],
+                      "additionalProperties": false
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/driver/orders/{id}/complete": {
+      "post": {
+        "summary": "One-tap proof of delivery",
+        "tags": [
+          "driver"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "in_pharmacy",
+                            "picked_up"
+                          ]
+                        },
+                        "sequence_number": {
+                          "type": "number",
+                          "nullable": true
+                        },
+                        "delivery_date": {
+                          "type": "string"
+                        },
+                        "delivery_window": {
+                          "type": "string",
+                          "enum": [
+                            "AM",
+                            "PM"
+                          ]
+                        },
+                        "patient_name": {
+                          "type": "string"
+                        },
+                        "address": {
+                          "type": "string"
+                        },
+                        "phone_number": {
+                          "type": "string"
+                        },
+                        "amount_due": {
+                          "type": "number",
+                          "nullable": true
+                        },
+                        "payment_status": {
+                          "type": "string",
+                          "enum": [
+                            "paid",
+                            "unpaid"
+                          ]
+                        },
+                        "payment_collected": {
+                          "type": "boolean"
+                        },
+                        "requires_cooler_bag": {
+                          "type": "boolean"
+                        },
+                        "picked_up_at": {
+                          "type": "string",
+                          "nullable": true
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "status",
+                        "sequence_number",
+                        "delivery_date",
+                        "delivery_window",
+                        "patient_name",
+                        "address",
+                        "phone_number",
+                        "amount_due",
+                        "payment_status",
+                        "payment_collected",
+                        "requires_cooler_bag",
+                        "picked_up_at"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "completed",
+                            "returned",
+                            "cancelled"
+                          ]
+                        },
+                        "delivery_date": {
+                          "type": "string"
+                        },
+                        "picked_up_at": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "completed_at": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "returned_at": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "requires_cooler_bag": {
+                          "type": "boolean"
+                        },
+                        "cooler_bag_confirmed": {
+                          "type": "boolean",
+                          "nullable": true
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "status",
+                        "delivery_date",
+                        "picked_up_at",
+                        "completed_at",
+                        "returned_at",
+                        "requires_cooler_bag",
+                        "cooler_bag_confirmed"
+                      ],
+                      "additionalProperties": false
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/driver/orders/{id}/return": {
+      "post": {
+        "summary": "Patient unavailable — return the package",
+        "tags": [
+          "driver"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "in_pharmacy",
+                            "picked_up"
+                          ]
+                        },
+                        "sequence_number": {
+                          "type": "number",
+                          "nullable": true
+                        },
+                        "delivery_date": {
+                          "type": "string"
+                        },
+                        "delivery_window": {
+                          "type": "string",
+                          "enum": [
+                            "AM",
+                            "PM"
+                          ]
+                        },
+                        "patient_name": {
+                          "type": "string"
+                        },
+                        "address": {
+                          "type": "string"
+                        },
+                        "phone_number": {
+                          "type": "string"
+                        },
+                        "amount_due": {
+                          "type": "number",
+                          "nullable": true
+                        },
+                        "payment_status": {
+                          "type": "string",
+                          "enum": [
+                            "paid",
+                            "unpaid"
+                          ]
+                        },
+                        "payment_collected": {
+                          "type": "boolean"
+                        },
+                        "requires_cooler_bag": {
+                          "type": "boolean"
+                        },
+                        "picked_up_at": {
+                          "type": "string",
+                          "nullable": true
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "status",
+                        "sequence_number",
+                        "delivery_date",
+                        "delivery_window",
+                        "patient_name",
+                        "address",
+                        "phone_number",
+                        "amount_due",
+                        "payment_status",
+                        "payment_collected",
+                        "requires_cooler_bag",
+                        "picked_up_at"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "completed",
+                            "returned",
+                            "cancelled"
+                          ]
+                        },
+                        "delivery_date": {
+                          "type": "string"
+                        },
+                        "picked_up_at": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "completed_at": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "returned_at": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "requires_cooler_bag": {
+                          "type": "boolean"
+                        },
+                        "cooler_bag_confirmed": {
+                          "type": "boolean",
+                          "nullable": true
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "status",
+                        "delivery_date",
+                        "picked_up_at",
+                        "completed_at",
+                        "returned_at",
+                        "requires_cooler_bag",
+                        "cooler_bag_confirmed"
+                      ],
+                      "additionalProperties": false
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/driver/orders/{id}/payment": {
+      "post": {
+        "summary": "Record a collection taken on the physical POS",
+        "tags": [
+          "driver"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "payment_method": {
+                    "type": "string",
+                    "enum": [
+                      "cash",
+                      "card"
+                    ]
+                  },
+                  "amount_collected": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 99999999.99
+                  }
+                },
+                "required": [
+                  "payment_method",
+                  "amount_collected"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "order": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string",
+                              "format": "uuid"
+                            },
+                            "status": {
+                              "type": "string",
+                              "enum": [
+                                "in_pharmacy",
+                                "picked_up"
+                              ]
+                            },
+                            "sequence_number": {
+                              "type": "number",
+                              "nullable": true
+                            },
+                            "delivery_date": {
+                              "type": "string"
+                            },
+                            "delivery_window": {
+                              "type": "string",
+                              "enum": [
+                                "AM",
+                                "PM"
+                              ]
+                            },
+                            "patient_name": {
+                              "type": "string"
+                            },
+                            "address": {
+                              "type": "string"
+                            },
+                            "phone_number": {
+                              "type": "string"
+                            },
+                            "amount_due": {
+                              "type": "number",
+                              "nullable": true
+                            },
+                            "payment_status": {
+                              "type": "string",
+                              "enum": [
+                                "paid",
+                                "unpaid"
+                              ]
+                            },
+                            "payment_collected": {
+                              "type": "boolean"
+                            },
+                            "requires_cooler_bag": {
+                              "type": "boolean"
+                            },
+                            "picked_up_at": {
+                              "type": "string",
+                              "nullable": true
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "status",
+                            "sequence_number",
+                            "delivery_date",
+                            "delivery_window",
+                            "patient_name",
+                            "address",
+                            "phone_number",
+                            "amount_due",
+                            "payment_status",
+                            "payment_collected",
+                            "requires_cooler_bag",
+                            "picked_up_at"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string",
+                              "format": "uuid"
+                            },
+                            "status": {
+                              "type": "string",
+                              "enum": [
+                                "completed",
+                                "returned",
+                                "cancelled"
+                              ]
+                            },
+                            "delivery_date": {
+                              "type": "string"
+                            },
+                            "picked_up_at": {
+                              "type": "string",
+                              "nullable": true
+                            },
+                            "completed_at": {
+                              "type": "string",
+                              "nullable": true
+                            },
+                            "returned_at": {
+                              "type": "string",
+                              "nullable": true
+                            },
+                            "requires_cooler_bag": {
+                              "type": "boolean"
+                            },
+                            "cooler_bag_confirmed": {
+                              "type": "boolean",
+                              "nullable": true
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "status",
+                            "delivery_date",
+                            "picked_up_at",
+                            "completed_at",
+                            "returned_at",
+                            "requires_cooler_bag",
+                            "cooler_bag_confirmed"
+                          ],
+                          "additionalProperties": false
+                        }
+                      ]
+                    },
+                    "amount_due": {
+                      "type": "number",
+                      "nullable": true
+                    },
+                    "amount_collected": {
+                      "type": "number"
+                    },
+                    "matches_amount_due": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "order",
+                    "amount_due",
+                    "amount_collected",
+                    "matches_amount_due"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/driver/orders/{id}/cooler-check": {
+      "post": {
+        "summary": "Post-delivery cooler bag quality check",
+        "tags": [
+          "driver"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "confirmed": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "confirmed"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "in_pharmacy",
+                            "picked_up"
+                          ]
+                        },
+                        "sequence_number": {
+                          "type": "number",
+                          "nullable": true
+                        },
+                        "delivery_date": {
+                          "type": "string"
+                        },
+                        "delivery_window": {
+                          "type": "string",
+                          "enum": [
+                            "AM",
+                            "PM"
+                          ]
+                        },
+                        "patient_name": {
+                          "type": "string"
+                        },
+                        "address": {
+                          "type": "string"
+                        },
+                        "phone_number": {
+                          "type": "string"
+                        },
+                        "amount_due": {
+                          "type": "number",
+                          "nullable": true
+                        },
+                        "payment_status": {
+                          "type": "string",
+                          "enum": [
+                            "paid",
+                            "unpaid"
+                          ]
+                        },
+                        "payment_collected": {
+                          "type": "boolean"
+                        },
+                        "requires_cooler_bag": {
+                          "type": "boolean"
+                        },
+                        "picked_up_at": {
+                          "type": "string",
+                          "nullable": true
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "status",
+                        "sequence_number",
+                        "delivery_date",
+                        "delivery_window",
+                        "patient_name",
+                        "address",
+                        "phone_number",
+                        "amount_due",
+                        "payment_status",
+                        "payment_collected",
+                        "requires_cooler_bag",
+                        "picked_up_at"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "completed",
+                            "returned",
+                            "cancelled"
+                          ]
+                        },
+                        "delivery_date": {
+                          "type": "string"
+                        },
+                        "picked_up_at": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "completed_at": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "returned_at": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "requires_cooler_bag": {
+                          "type": "boolean"
+                        },
+                        "cooler_bag_confirmed": {
+                          "type": "boolean",
+                          "nullable": true
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "status",
+                        "delivery_date",
+                        "picked_up_at",
+                        "completed_at",
+                        "returned_at",
+                        "requires_cooler_bag",
+                        "cooler_bag_confirmed"
+                      ],
+                      "additionalProperties": false
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3000"
+    }
+  ],
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ]
+}

@@ -9,7 +9,13 @@
       "@/assets/*": [
         "./assets/*"
       ]
-    }
+    },
+    "noUncheckedIndexedAccess": true,
+    "types": [
+      "jest",
+      "node",
+      "react"
+    ]
   },
   "include": [
     "**/*.ts",
