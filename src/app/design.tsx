@@ -18,7 +18,7 @@ import { QueueTabBar, type QueueTab } from '@/components/driver/queue-tab-bar';
 import { StopSheet } from '@/components/driver/stop-sheet';
 import { GlassPanel } from '@/components/glass/glass-panel';
 import { CLOSED_STOPS, ON_THE_WAY_STOPS, PHARMACY, READY_STOPS } from '@/design/fixtures';
-import { GALLERY_STRINGS } from '@/design/gallery-strings';
+import { STRINGS } from '@/locale/strings';
 import { useTheme, useThemeMode } from '@/design/theme';
 import { Radius, Space, Type } from '@/design/tokens';
 
@@ -45,7 +45,7 @@ export default function DesignGallery() {
   const insets = useSafeAreaInsets();
   const theme = useTheme();
   const { mode, setMode } = useThemeMode();
-  const t = GALLERY_STRINGS[locale];
+  const t = STRINGS[locale];
 
   const counts = useMemo(
     () => ({

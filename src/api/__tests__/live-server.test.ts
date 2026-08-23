@@ -41,8 +41,10 @@ jest.mock('expo-secure-store', () => ({
 }));
 
 import { API_BASE_URL, getMe, getQueue, login, logout } from '../client';
+import { ApiError } from '../errors';
+import { resetRefreshState, setSessionTerminationHandler } from '../refresh';
 import { isActiveStop, type QueueResponse } from '../types';
-import { loadSession, resetSessionCache } from '@/auth/token-store';
+import { loadSession, resetSessionCache, saveSession } from '@/auth/token-store';
 
 const DRIVER = {
   email: 'driver@stlaurent.example.ca',
@@ -248,4 +250,160 @@ describe('live server', () => {
       login({ email: DRIVER.email, password: 'wrong-password-entirely' }),
     ).rejects.toMatchObject({ name: 'ApiError', code: 'INVALID_CREDENTIALS' });
   });
+
+  /**
+   * Feature 3's gate, item 2: kill the access token and confirm the next call
+   * recovers on its own without the driver noticing.
+   */
+  it('refreshes silently when the access token has expired', async () => {
+    await login(DRIVER);
+    const before = await loadSession();
+    if (!before) throw new Error('login did not persist a session');
+
+    // Backdate the expiry the way fifteen idle minutes would.
+    await saveSession({
+      accessToken: before.accessToken,
+      refreshToken: before.refreshToken,
+      expiresAt: Date.now() - 1_000,
+    });
+
+    // No error, no sign-out — just the queue.
+    const queue = await getQueue();
+    expect(queue.date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+
+    resetSessionCache();
+    const after = await loadSession();
+    if (!after) throw new Error('the refresh did not persist a session');
+
+    // The refresh token is the proof: it is opaque random bytes and the server
+    // rotates it on every use, so a different value can only mean a refresh
+    // actually happened. The *access* token is deliberately not asserted on —
+    // it is a JWT over (sub, role, org, iat, exp) at one-second resolution, so
+    // a refresh landing in the same second as the login re-issues a
+    // byte-identical string. Asserting inequality there fails at random.
+    expect(after.refreshToken).not.toBe(before.refreshToken);
+    expect(after.expiresAt).toBeGreaterThan(Date.now());
+  });
+
+  /**
+   * Feature 3's gate, item 3: the pharmacy deactivates the driver, and the app
+   * wipes the device (PRD §4.5).
+   *
+   * What the server actually does, verified here rather than assumed:
+   *   - deactivation revokes every refresh token immediately;
+   *   - `/v1/auth/me` and `/v1/auth/refresh` both re-check `is_active` and
+   *     answer `ACCOUNT_DISABLED`;
+   *   - the driver endpoints do **not** re-check it. They only verify the JWT,
+   *     so an already-issued access token keeps working until it expires.
+   *
+   * Reactivation runs in `finally` — a failed assertion must not leave the
+   * seeded driver locked out of the development environment.
+   */
+  it('wipes to sign-in when the pharmacy deactivates the driver', async () => {
+    const admin = await adminToken();
+    const driverId = await findDriverId(admin);
+
+    // An array rather than a `let`: the assignment happens inside a callback,
+    // which narrowing cannot see.
+    const terminations: ApiError[] = [];
+    setSessionTerminationHandler((error) => terminations.push(error));
+
+    try {
+      await login(DRIVER);
+      expect(await loadSession()).not.toBeNull();
+
+      await adminPatch(admin, driverId, false);
+
+      // The first call that re-checks the user wipes the device.
+      await expect(getMe()).rejects.toMatchObject({
+        name: 'ApiError',
+        code: 'ACCOUNT_DISABLED',
+      });
+
+      resetSessionCache();
+      expect(await loadSession()).toBeNull();
+      expect(terminations).toHaveLength(1);
+      expect(terminations[0]?.code).toBe('ACCOUNT_DISABLED');
+
+      // And there is no way back in while deactivated.
+      await expect(login(DRIVER)).rejects.toMatchObject({ code: 'ACCOUNT_DISABLED' });
+    } finally {
+      setSessionTerminationHandler(null);
+      resetRefreshState();
+      await adminPatch(admin, driverId, true);
+    }
+
+    // Reactivated: the driver can sign in again.
+    const session = await login(DRIVER);
+    expect(session.user.role).toBe('driver');
+  });
+
+  /**
+   * Pins the gap above so it is a known quantity rather than a surprise.
+   *
+   * A deactivated driver keeps read access to patient addresses through the
+   * driver endpoints until their access token expires — up to 15 minutes on a
+   * device that may be the reason the pharmacy deactivated them. Closing it is
+   * a server change (re-check `is_active` in the auth preHandler, or keep a
+   * revocation list); the app cannot, because the token verifies correctly.
+   *
+   * If this test ever fails, the server closed the window and the note in the
+   * plan's "server gaps" section should come out.
+   */
+  it('documents the window: driver endpoints still accept an issued token after deactivation', async () => {
+    const admin = await adminToken();
+    const driverId = await findDriverId(admin);
+
+    try {
+      await login(DRIVER);
+      await adminPatch(admin, driverId, false);
+
+      const queue = await getQueue();
+      expect(queue.date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+      console.log(
+        '\n  NOTE: the queue still answered a deactivated driver.'
+          + '\n  The access token stays valid until it expires (server gap).',
+      );
+    } finally {
+      resetRefreshState();
+      await adminPatch(admin, driverId, true);
+    }
+  });
 });
+
+/* -------------------------------------------------------------------------- */
+/* Admin-side helpers — the dashboard's half of the deactivation test         */
+/* -------------------------------------------------------------------------- */
+
+async function adminToken(): Promise<string> {
+  const res = await fetch(`${API_BASE_URL}/v1/auth/login`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      email: 'admin@stlaurent.example.ca',
+      password: DRIVER.password,
+    }),
+  });
+  if (!res.ok) throw new Error(`admin login failed: ${res.status}`);
+  const body = (await res.json()) as { access_token: string };
+  return body.access_token;
+}
+
+async function findDriverId(token: string): Promise<string> {
+  const res = await fetch(`${API_BASE_URL}/v1/drivers/`, {
+    headers: { authorization: `Bearer ${token}` },
+  });
+  const body = (await res.json()) as { data: { id: string; email: string }[] };
+  const driver = body.data.find((d) => d.email === DRIVER.email);
+  if (!driver) throw new Error('seeded driver not found');
+  return driver.id;
+}
+
+async function adminPatch(token: string, id: string, isActive: boolean): Promise<void> {
+  const res = await fetch(`${API_BASE_URL}/v1/drivers/${id}`, {
+    method: 'PATCH',
+    headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
+    body: JSON.stringify({ is_active: isActive }),
+  });
+  if (!res.ok) throw new Error(`could not set is_active=${isActive}: ${res.status}`);
+}

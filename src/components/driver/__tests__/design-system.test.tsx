@@ -10,7 +10,7 @@ import { MeshBackground } from '@/components/glass/mesh-background';
 import { AppThemeProvider } from '@/design/theme-provider';
 import { DARK_THEME, LIGHT_THEME, type ThemeName } from '@/design/theme';
 import { CLOSED_STOPS, ON_THE_WAY_STOPS, READY_STOPS } from '@/design/fixtures';
-import { GALLERY_STRINGS } from '@/design/gallery-strings';
+import { STRINGS } from '@/locale/strings';
 
 /**
  * Render checks for the design system.
@@ -44,12 +44,12 @@ const READY = READY_STOPS[0]!;
 const ACTIVE = ON_THE_WAY_STOPS[0]!;
 
 const cardLabels = (locale: 'fr' | 'en') => ({
-  cooler: GALLERY_STRINGS[locale].cooler,
-  accessibilityPrefix: GALLERY_STRINGS[locale].accessibilityPrefix,
+  cooler: STRINGS[locale].cooler,
+  accessibilityPrefix: STRINGS[locale].accessibilityPrefix,
 });
 
 const sheetLabels = (locale: 'fr' | 'en') => {
-  const t = GALLERY_STRINGS[locale];
+  const t = STRINGS[locale];
   return {
     status: t.statusOnTheWay,
     client: t.client,
@@ -72,14 +72,14 @@ describe('OrderCard', () => {
     expect(screen.getByText(READY.patient_name)).toBeTruthy();
     expect(screen.getByText(READY.address)).toBeTruthy();
     expect(screen.getByText('AM 9h–12h')).toBeTruthy();
-    expect(screen.getByText(GALLERY_STRINGS.fr.cooler)).toBeTruthy();
+    expect(screen.getByText(STRINGS.fr.cooler)).toBeTruthy();
   });
 
   it('renders the same card in English with English formatting', () => {
     mount(<OrderCard stop={READY} locale="en" labels={cardLabels('en')} />);
 
     expect(screen.getByText('AM 9–12')).toBeTruthy();
-    expect(screen.getByText(GALLERY_STRINGS.en.cooler)).toBeTruthy();
+    expect(screen.getByText(STRINGS.en.cooler)).toBeTruthy();
   });
 
   it('exposes selection state to assistive technology', () => {
@@ -88,7 +88,7 @@ describe('OrderCard', () => {
     );
 
     const card = screen.getByLabelText(
-      `${GALLERY_STRINGS.fr.accessibilityPrefix} ${READY.patient_name}, ${READY.address}`,
+      `${STRINGS.fr.accessibilityPrefix} ${READY.patient_name}, ${READY.address}`,
     );
     expect(card.props.accessibilityState).toMatchObject({ checked: true, selected: true });
   });
@@ -97,17 +97,17 @@ describe('OrderCard', () => {
 describe('ClosedOrderCard', () => {
   const closed = CLOSED_STOPS[0]!;
   const labels = {
-    completed: GALLERY_STRINGS.fr.completed,
-    returned: GALLERY_STRINGS.fr.returned,
-    cancelled: GALLERY_STRINGS.fr.cancelled,
-    coolerPending: GALLERY_STRINGS.fr.coolerPending,
-    returnToPharmacy: GALLERY_STRINGS.fr.returnToPharmacy,
+    completed: STRINGS.fr.completed,
+    returned: STRINGS.fr.returned,
+    cancelled: STRINGS.fr.cancelled,
+    coolerPending: STRINGS.fr.coolerPending,
+    returnToPharmacy: STRINGS.fr.returnToPharmacy,
   };
 
   it('shows the order reference and outcome', () => {
     mount(<ClosedOrderCard stop={closed} locale="fr" labels={labels} />);
 
-    expect(screen.getByText(GALLERY_STRINGS.fr.completed)).toBeTruthy();
+    expect(screen.getByText(STRINGS.fr.completed)).toBeTruthy();
   });
 
   it('renders no patient data — the terminal payload carries none', () => {
@@ -125,7 +125,7 @@ describe('ClosedOrderCard', () => {
     )!;
     mount(<ClosedOrderCard stop={pending} locale="fr" labels={labels} />);
 
-    expect(screen.getByText(GALLERY_STRINGS.fr.coolerPending)).toBeTruthy();
+    expect(screen.getByText(STRINGS.fr.coolerPending)).toBeTruthy();
   });
 });
 
@@ -140,9 +140,9 @@ describe('StopSheet', () => {
       />,
     );
 
-    expect(screen.getByText(GALLERY_STRINGS.fr.delivered)).toBeTruthy();
-    expect(screen.getByText(GALLERY_STRINGS.fr.returnOrder)).toBeTruthy();
-    expect(screen.queryByText(GALLERY_STRINGS.fr.takeCharge)).toBeNull();
+    expect(screen.getByText(STRINGS.fr.delivered)).toBeTruthy();
+    expect(screen.getByText(STRINGS.fr.returnOrder)).toBeTruthy();
+    expect(screen.queryByText(STRINGS.fr.takeCharge)).toBeNull();
   });
 
   it('offers pickup, and nothing else, on a stop still at the pharmacy', () => {
@@ -150,9 +150,9 @@ describe('StopSheet', () => {
       <StopSheet stop={READY} locale="fr" transitions={['pickup']} labels={sheetLabels('fr')} />,
     );
 
-    expect(screen.getByText(GALLERY_STRINGS.fr.takeCharge)).toBeTruthy();
-    expect(screen.queryByText(GALLERY_STRINGS.fr.delivered)).toBeNull();
-    expect(screen.queryByText(GALLERY_STRINGS.fr.returnOrder)).toBeNull();
+    expect(screen.getByText(STRINGS.fr.takeCharge)).toBeTruthy();
+    expect(screen.queryByText(STRINGS.fr.delivered)).toBeNull();
+    expect(screen.queryByText(STRINGS.fr.returnOrder)).toBeNull();
   });
 
   it('surfaces the amount owed at the door', () => {
@@ -166,7 +166,7 @@ describe('StopSheet', () => {
     );
 
     expect(screen.getByText(/42\.50/)).toBeTruthy();
-    expect(screen.getByText(GALLERY_STRINGS.en.paymentAtDoor)).toBeTruthy();
+    expect(screen.getByText(STRINGS.en.paymentAtDoor)).toBeTruthy();
   });
 });
 
@@ -177,13 +177,13 @@ describe('QueueTabBar', () => {
       <QueueTabBar
         active="ready"
         counts={counts}
-        labels={GALLERY_STRINGS.fr.tabs}
+        labels={STRINGS.fr.tabs}
         onChange={() => {}}
       />,
     );
 
-    expect(screen.getByLabelText(`${GALLERY_STRINGS.fr.tabs.ready}, 8`)).toBeTruthy();
-    expect(screen.getByLabelText(`${GALLERY_STRINGS.fr.tabs.on_the_way}, 3`)).toBeTruthy();
+    expect(screen.getByLabelText(`${STRINGS.fr.tabs.ready}, 8`)).toBeTruthy();
+    expect(screen.getByLabelText(`${STRINGS.fr.tabs.on_the_way}, 3`)).toBeTruthy();
   });
 });
 
@@ -192,14 +192,14 @@ describe('design gallery', () => {
     mount(<DesignGallery />);
 
     // French is the default (PRD 5.11).
-    expect(screen.getByText(GALLERY_STRINGS.fr.tagline)).toBeTruthy();
-    expect(screen.getByText(GALLERY_STRINGS.fr.tabs.on_the_way)).toBeTruthy();
-    expect(screen.getAllByText(GALLERY_STRINGS.fr.returnOrder).length).toBeGreaterThan(0);
+    expect(screen.getByText(STRINGS.fr.tagline)).toBeTruthy();
+    expect(screen.getByText(STRINGS.fr.tabs.on_the_way)).toBeTruthy();
+    expect(screen.getAllByText(STRINGS.fr.returnOrder).length).toBeGreaterThan(0);
 
     fireEvent.press(screen.getByLabelText('EN'));
 
-    expect(screen.getByText(GALLERY_STRINGS.en.tagline)).toBeTruthy();
-    expect(screen.getByText(GALLERY_STRINGS.en.tabs.on_the_way)).toBeTruthy();
+    expect(screen.getByText(STRINGS.en.tagline)).toBeTruthy();
+    expect(screen.getByText(STRINGS.en.tabs.on_the_way)).toBeTruthy();
   });
 });
 
@@ -207,8 +207,8 @@ describe('themes', () => {
   it('renders every surface in day mode as well as night', () => {
     mount(<DesignGallery />, 'light');
 
-    expect(screen.getByText(GALLERY_STRINGS.fr.tagline)).toBeTruthy();
-    expect(screen.getAllByText(GALLERY_STRINGS.fr.returnOrder).length).toBeGreaterThan(0);
+    expect(screen.getByText(STRINGS.fr.tagline)).toBeTruthy();
+    expect(screen.getAllByText(STRINGS.fr.returnOrder).length).toBeGreaterThan(0);
   });
 
   it('switches from night to day when the driver picks day', () => {
@@ -220,7 +220,7 @@ describe('themes', () => {
       expect.arrayContaining([expect.objectContaining({ color: DARK_THEME.palette.accentDim })]),
     );
 
-    fireEvent.press(screen.getByLabelText(GALLERY_STRINGS.fr.themeLight));
+    fireEvent.press(screen.getByLabelText(STRINGS.fr.themeLight));
 
     expect(screen.getByText('2 - Ready tab, batch pickup').props.style).toEqual(
       expect.arrayContaining([expect.objectContaining({ color: LIGHT_THEME.palette.accentDim })]),

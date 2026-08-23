@@ -111,29 +111,43 @@ Today's queue is legitimately empty whenever the seed was last run on an earlier
 
 The server's idempotency fingerprint sorts object keys before hashing, so a retry must be semantically identical rather than literally byte-identical. The client resends the original body regardless, which satisfies both readings.
 
-### Feature 3 — Session
+### Feature 3 — Session ✅ done
 
-src/app/(auth)/sign-in.tsx, src/app/(auth)/register.tsx, src/auth/session-provider.tsx.
+Shipped:
 
-Expo Router Stack.Protected guards in src/app/\_layout.tsx — guard={!!session} for (app), guard={!session} for (auth).
+src/auth/session-provider.tsx — the session derived from the secure store, never from React state that outlives it. Three states: restoring (one Keychain read, covered by the native splash), signed-out (carrying *why*, when it was taken away), and signed-in (with the /v1/auth/me profile, or null when the app launched offline — a driver in a parking garage is not sent back to a login screen).
 
-Invite registration: 8-char code, uppercase monospace input auto-grouped 4+4, paste path via expo-clipboard. Distinct messages per code — INVITE_CODE_INVALID (422) vs INVITE_CODE_EXPIRED (422) vs INVITE_CODE_REDEEMED (409) — because "invalid code" sends the driver back to the pharmacist for nothing. Password minimum is 12 characters (server schema).
+Expo Router Stack.Protected guards in src/app/\_layout.tsx. No router.replace in a useEffect anywhere: the guard flipping *is* the navigation, so there is no window in which a signed-out device renders a patient address.
 
-Throttling: LOGIN_THROTTLED carries details.retry_after_seconds; RATE_LIMITED carries only the x-ratelimit-reset header. Both must render real minutes.
+src/app/(auth)/sign-in.tsx and src/app/(auth)/register.tsx — two routes, not two states of one screen. The segmented control navigates between them, so a driver arriving with a printed code can land on /register directly. Invite code is uppercase monospace, grouped 4+4, with a paste path that strips spaces, dashes, and newlines (expo-clipboard). Password minimum 12, surfaced before the round-trip. Registration signs the driver straight in with the credentials already in hand, falling back to the sign-in screen if that second call fails — the account exists either way.
 
-Deactivation path: any terminal 401/403 ⇒ wipe secure store, purge the query cache, return to sign-in. The outbox survives (PII-free).
+src/app/(app)/ready.tsx, on-the-way.tsx, done.tsx — a page per state, behind a real tab navigator whose bar is the Feature 1 glass component driven by navigation state. Ready = in_pharmacy, On the way = picked_up, Done = closed (completed, returned, and cancelled alike).
 
-Verification gate: log in as driver@stlaurent.example.ca / DevPassword123!; kill the token and confirm silent refresh; deactivate the driver from the dashboard and confirm the next call wipes to sign-in.
+src/locale/ — strings.ts (FR/EN, French as the shape of record so a missing English key is a build error), locale-provider.tsx, and error-message.ts, which maps server *codes* to wording. Nothing branches on server prose, which is English-only and changes without notice.
+
+src/queue/query-client.ts and use-queue.ts — pulled forward from Feature 4 because the three pages needed data and the deactivation path needed a cache to purge. gcTime: 0 is a privacy rule, not tuning: an unmounted query keeps nothing (§6.3). One request feeds all three pages and the tab badges, so the count and the list cannot disagree.
+
+src/auth/token-store.web.ts — memory-only. expo-secure-store has no web implementation, and localStorage is not a substitute for a hardware-backed keychain, so the browser build holds the credential in a module variable and a reload signs out. Web is a design-review and verification surface here, not a shipping target.
+
+Two defects found and fixed during verification, both invisible to the tests that existed at the time:
+
+PII bleeding between tabs. Every tab scene is transparent so the shared mesh shows through — which means an inactive scene is not hidden *behind* the active one, it shows *through* it. Opening Done rendered the Ready list's patient names and addresses ghosting behind the closed cards. detachInactiveScreens is the platform answer and does nothing on web, so QueueScreen now refuses to draw unless it is the focused tab. Caught by looking at a screenshot, not by a test; there is now a test.
+
+`/` matched no route at all. Harmless on native, a hard 404 on web. src/app/index.tsx now redirects by session state, naming each target only while its guard is open so it cannot bounce.
+
+Verification — passed: npx tsc --noEmit clean · npm test 97/97 green, up from 67 (30 new: 7 session lifecycle, 6 queue split, 13 error mapping and both-languages-complete, 4 queue page frame) · npx expo export --platform android bundles with no errors · npm run verify:api 8/8 against the running server, now covering both remaining gate items — backdating the access token and confirming the refresh token rotates silently, and deactivating the driver through the admin API and confirming the wipe (reactivation runs in `finally`, so a failed assertion cannot leave the seeded driver locked out) · the app driven end to end in a real browser against the real server, 18/18 checks and zero page errors: sign-in in French, the localized INVALID_CREDENTIALS message, /register as its own route, the pharmacy name from /v1/auth/me, all three pages, tab badges matching the server payload exactly (2/1/2), and no patient address anywhere on Done.
+
+Today's queue was empty because the seed dates orders to whenever it last ran, so five orders were created for today through the admin API and walked into all three states with the driver's own endpoints — the workflow this plan already describes, not a database edit.
 
 ### Feature 4 — Queue read path
 
-src/queue/use-queue.ts — TanStack Query against GET /v1/driver/queue?date=, gcTime: 0, no persistence (PII is memory-only, §6.3). 30s foreground poll + pull-to-refresh; well inside the server's 100 req/min per-user budget.
+src/queue/use-queue.ts landed in Feature 3 (TanStack Query, gcTime: 0, no persistence, pull-to-refresh). What is left here is the 30s foreground poll — well inside the server's 100 req/min per-user budget.
 
-src/app/(app)/index.tsx — the three tabs wired to real data: Ready = in_pharmacy, On the way = picked_up, Done = closed (which also includes cancelled).
+The three pages are wired to real data as of Feature 3, one route each. Remaining here: the stop sheet, and i18n moving from src/locale to i18next + expo-localization with the initial locale seeded from /v1/auth/me organization.locale and the driver's override persisted on-device.
 
 Stop sheet wired: call patient (phone_number) and pharmacy (pharmacy.phone) via Linking.openURL('tel:'). Both disappear on terminal orders because the server stops sending the numbers.
 
-src/i18n/ — i18next + expo-localization, FR default, initial locale from /v1/auth/me organization.locale, override persisted on-device. Every string from Feature 1 externalized.
+src/i18n/ — i18next + expo-localization replacing src/locale/'s plain dictionary. Every call site already reads through useStrings(), so the swap lands in the provider and nowhere else. Strings are already externalized and both languages are asserted complete by a test.
 
 src/lib/delivery-windows.ts — AM 09:00–12:00 / PM 13:00–17:00, mirroring the dashboard's file. The server does not expose the org's real window times (/v1/auth/me gives only id/name/phone/timezone/locale), so this is one constant, not literals scattered through the UI.
 
@@ -188,6 +202,9 @@ Seeded driver accounts (password DevPassword123!): driver@stlaurent.example.ca (
 App: EXPO_PUBLIC_API_URL=http://<LAN-IP>:3000 npx expo start, then Expo Go. Per-feature gates above; npx tsc --noEmit and npm test must be clean at every gate.
 
 ## Server gaps to raise (found while planning)
+
+**Deactivation is not immediate on the driver endpoints.** Found while verifying Feature 3, against the running server. Deactivating a driver revokes every refresh token, and /v1/auth/me and /v1/auth/refresh both re-check is_active and answer ACCOUNT_DISABLED — but the driver endpoints only verify the JWT, so an already-issued access token keeps returning patient addresses until it expires, up to 15 minutes. PRD §4.5 says "the next API call returns 401"; that holds for /v1/auth/me, not for /v1/driver/queue. The app cannot close this — the token verifies correctly — so it needs an is_active re-check in the server's auth preHandler, or a revocation list. Pinned by a live test that fails if the server ever closes it.
+
 
 No stop coordinates. Blocks the map view and card distance/bearing outright. Needs latitude/longitude on orders (geocoded server-side at creation) exposed in the driver queue payload.
 
