@@ -6,12 +6,14 @@ import {
   DelayChip,
   MoneyBadge,
   OutcomePill,
+  PackageBadge,
+  PriorityBadge,
   SelectBox,
   SequenceBadge,
   WindowChip,
 } from '@/components/driver/badges';
 import { GlassPanel } from '@/components/glass/glass-panel';
-import type { ActiveStop, ClosedStop } from '@/api/types';
+import type { ActiveStop, TerminalStatus, TerminalStop } from '@/api/types';
 import { useTheme } from '@/design/theme';
 import { MonoFont, Radius, Space, Type } from '@/design/tokens';
 import { clock, elapsedLabel, orderRef } from '@/lib/format';
@@ -31,6 +33,9 @@ type OrderCardProps = {
   locale: 'fr' | 'en';
   labels: {
     cooler: string;
+    priority: string;
+    /** Pluralised by the caller; "colis" is invariant in French. */
+    packages: string;
     /** Screen-reader prefix, e.g. "Delivery for". */
     accessibilityPrefix: string;
   };
@@ -93,6 +98,16 @@ export function OrderCard({
 
         <View style={styles.footer}>
           <View style={styles.badges}>
+            {stop.is_priority ? <PriorityBadge label={labels.priority} /> : null}
+            {/*
+              Finer than the AM/PM window when the pharmacy set one. It sits
+              beside the window rather than replacing it: the chip is the
+              most-scanned thing on the card (PRD §5.2) and a driver reading a
+              bare "14:30" has lost the half-day it belongs to.
+            */}
+            {stop.requested_delivery_time ? (
+              <DelayChip label={stop.requested_delivery_time} />
+            ) : null}
             {owes ? (
               <MoneyBadge
                 amount={stop.amount_due ?? 0}
@@ -101,6 +116,9 @@ export function OrderCard({
               />
             ) : null}
             {stop.requires_cooler_bag ? <CoolerBadge label={labels.cooler} /> : null}
+            {stop.package_count > 1 ? (
+              <PackageBadge count={stop.package_count} label={labels.packages} />
+            ) : null}
             {delay ? <DelayChip label={delay} /> : null}
           </View>
           <Text style={[styles.ref, { color: theme.ink.tertiary }]}>{orderRef(stop.id)}</Text>
@@ -113,9 +131,15 @@ export function OrderCard({
 /**
  * A finished delivery on the Done tab.
  *
- * There is deliberately no patient name, address, or phone here — the server
- * strips them from terminal orders and the app renders what remains (PRD §8.1).
- * The order reference is what the driver reads back at the counter.
+ * Typed `TerminalStop`, not `ClosedStop`: a `returned` order is also closed —
+ * PII-stripped, no patient name to render — but it is *not* finished, because
+ * the pharmacy has not taken the package back yet. It belongs on the À
+ * rapporter tab, and the type is what keeps it off this one.
+ *
+ * There is deliberately no patient name, address, or phone here. The server
+ * strips them the moment the delivery attempt ends and the app renders what
+ * remains (PRD §8.1). The order reference and the label codes are what the
+ * driver reads back at the counter.
  */
 export function ClosedOrderCard({
   stop,
@@ -123,20 +147,20 @@ export function ClosedOrderCard({
   labels,
   onPress,
 }: {
-  stop: ClosedStop;
+  stop: TerminalStop;
   locale: 'fr' | 'en';
-  labels: {
-    completed: string;
-    returned: string;
-    cancelled: string;
-    coolerPending: string;
-    returnToPharmacy: string;
-  };
+  labels: Record<TerminalStatus, string> & { coolerPending: string };
   onPress?: () => void;
 }) {
   const theme = useTheme();
   const outcome = labels[stop.status];
-  const at = clock(stop.completed_at ?? stop.returned_at, locale);
+  // Whichever way it ended. `returned_to_pharmacy_at` is the newest of the
+  // three and has to be read first, or a handed-back parcel shows the time of
+  // the failed attempt instead of the time it got back on the shelf.
+  const at = clock(
+    stop.returned_to_pharmacy_at ?? stop.completed_at ?? stop.returned_at,
+    locale,
+  );
   const coolerPending = stop.requires_cooler_bag && stop.cooler_bag_confirmed === null;
 
   return (
@@ -149,14 +173,7 @@ export function ClosedOrderCard({
           <Text style={[styles.closedRef, { color: theme.ink.primary }]}>{orderRef(stop.id)}</Text>
           <OutcomePill status={stop.status} label={outcome} />
         </View>
-        <View style={styles.badges}>
-          {at ? <DelayChip label={at} /> : null}
-          {stop.status === 'returned' ? (
-            <Text style={[styles.returnNote, { color: theme.palette.caution }]}>
-              {labels.returnToPharmacy}
-            </Text>
-          ) : null}
-        </View>
+        <View style={styles.badges}>{at ? <DelayChip label={at} /> : null}</View>
         {coolerPending ? (
           <View style={styles.coolerPending}>
             <Ionicons name="alert-circle-outline" size={15} color={theme.palette.cooler} />
@@ -195,7 +212,6 @@ const styles = StyleSheet.create({
   closedCard: { padding: Space.lg, gap: Space.md },
   closedHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   closedRef: { ...Type.body, fontFamily: MonoFont, letterSpacing: 0.8 },
-  returnNote: { ...Type.meta },
   coolerPending: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   coolerPendingText: { ...Type.meta },
 });

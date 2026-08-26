@@ -5,10 +5,17 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { GlassPanel } from '@/components/glass/glass-panel';
 import { useTheme, type Theme } from '@/design/theme';
 import { Radius, Space, TapTarget, Type } from '@/design/tokens';
+import type { QueueTab } from '@/queue/use-queue';
 
 /**
- * The three tabs of a driver's day (PRD §5.1), each with its count — the first
+ * The four tabs of a driver's day (PRD §5.1), each with its count — the first
  * glance answers "how much day is left".
+ *
+ * À rapporter is a tab and not a section of Done because it is a physical
+ * checklist worked against `pharmacy.return_deadline`: the driver stands at
+ * the counter matching label codes to parcels. Buried under a scroll of
+ * completed deliveries it is exactly the thing the deadline exists to stop
+ * people forgetting.
  *
  * Counts use the accent rather than the mockup's red: in this palette red means
  * money owed or a failed action, and a Ready count of 8 is neither. Reserving
@@ -18,7 +25,7 @@ import { Radius, Space, TapTarget, Type } from '@/design/tokens';
  * something to refract, and it stays inside the thumb arc.
  */
 
-export type QueueTab = 'ready' | 'on_the_way' | 'done';
+export type { QueueTab };
 
 const TABS: { key: QueueTab; icon: (color: string) => React.ReactNode }[] = [
   {
@@ -32,13 +39,20 @@ const TABS: { key: QueueTab; icon: (color: string) => React.ReactNode }[] = [
     ),
   },
   {
+    key: 'to_hand_back',
+    icon: (color) => (
+      <MaterialCommunityIcons name="package-variant-closed" size={22} color={color} />
+    ),
+  },
+  {
     key: 'done',
     icon: (color) => <Ionicons name="checkmark-circle-outline" size={22} color={color} />,
   },
 ];
 
 type QueueTabBarProps = {
-  active: QueueTab;
+  /** `null` while a non-tab route (the notifications feed) is on top. */
+  active: QueueTab | null;
   counts: Record<QueueTab, number>;
   labels: Record<QueueTab, string>;
   onChange: (tab: QueueTab) => void;
@@ -135,11 +149,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
     borderRadius: Radius.chip,
   },
-  label: { ...Type.chip, fontSize: 12 },
+  // 11pt, not 12: four tabs leave roughly 73pt of label width on a 390pt
+  // screen, and "À rapporter" is the longest label in either language.
+  label: { ...Type.chip, fontSize: 11 },
   badge: {
     position: 'absolute',
     top: -6,
-    right: -12,
+    right: -8,
     minWidth: 18,
     height: 18,
     borderRadius: 9,

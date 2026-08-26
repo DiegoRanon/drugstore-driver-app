@@ -3,6 +3,7 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 
 import { GlassPanel } from '@/components/glass/glass-panel';
+import type { ClosedStatus } from '@/api/types';
 import { useTheme, type Theme, type TintName } from '@/design/theme';
 import { Radius, Type } from '@/design/tokens';
 import { windowLabel, type DeliveryWindow } from '@/lib/delivery-windows';
@@ -91,6 +92,42 @@ export function MoneyBadge({
   );
 }
 
+/**
+ * The employee said this one goes first (`domain_workflow.md`, §Pendant prise
+ * en charge). The server sorts priority stops to the front of `stops`
+ * regardless of route position, so this badge explains an order the driver
+ * would otherwise read as a bug.
+ */
+export function PriorityBadge({ label }: { label: string }) {
+  const theme = useTheme();
+  return (
+    <Chip
+      tint="danger"
+      color={theme.palette.danger}
+      icon={<Ionicons name="flag" size={14} color={theme.palette.danger} />}
+      label={label}
+    />
+  );
+}
+
+/** How many parcels to pick up. The count the label check has to agree with. */
+export function PackageBadge({ count, label }: { count: number; label: string }) {
+  const theme = useTheme();
+  return (
+    <Chip
+      color={theme.ink.secondary}
+      icon={
+        <MaterialCommunityIcons
+          name="package-variant-closed"
+          size={14}
+          color={theme.ink.secondary}
+        />
+      }
+      label={`${count} ${label}`}
+    />
+  );
+}
+
 /** Grab the bag at pickup, not at the door. */
 export function CoolerBadge({ label }: { label: string }) {
   const theme = useTheme();
@@ -156,6 +193,19 @@ export function SelectBox({ selected }: { selected: boolean }) {
   );
 }
 
+/**
+ * Every status a delivery can end an attempt in.
+ *
+ * `satisfies Record<ClosedStatus, …>` rather than a bare object: a status the
+ * server adds must fail the build here, not index to `undefined` and crash on
+ * `outcome.color(theme)` in front of a driver.
+ *
+ * `returned` and `returned_to_pharmacy` read differently on purpose. The first
+ * is an open obligation — the parcel is in the van and the pharmacy is still
+ * waiting for it — so it is caution. The second is done: the delivery failed
+ * but the *task* completed, and a driver scanning the Done tab should see it
+ * settled rather than flagged.
+ */
 const OUTCOME = {
   completed: {
     tint: 'money',
@@ -167,19 +217,27 @@ const OUTCOME = {
     icon: 'arrow-undo-circle',
     color: (theme: Theme) => theme.palette.caution,
   },
+  returned_to_pharmacy: {
+    tint: 'money',
+    icon: 'arrow-undo-circle',
+    color: (theme: Theme) => theme.palette.money,
+  },
   cancelled: {
     tint: 'neutral',
     icon: 'close-circle',
     color: (theme: Theme) => theme.ink.tertiary,
   },
-} as const;
+} as const satisfies Record<
+  ClosedStatus,
+  { tint: TintName; icon: keyof typeof Ionicons.glyphMap; color: (theme: Theme) => string }
+>;
 
-/** Outcome of a closed delivery, on the Done tab. */
+/** Outcome of a closed delivery, on the Done and À rapporter tabs. */
 export function OutcomePill({
   status,
   label,
 }: {
-  status: keyof typeof OUTCOME;
+  status: ClosedStatus;
   label: string;
 }) {
   const theme = useTheme();

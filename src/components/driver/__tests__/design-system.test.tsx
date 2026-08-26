@@ -9,7 +9,13 @@ import { StopSheet } from '@/components/driver/stop-sheet';
 import { MeshBackground } from '@/components/glass/mesh-background';
 import { AppThemeProvider } from '@/design/theme-provider';
 import { DARK_THEME, LIGHT_THEME, type ThemeName } from '@/design/theme';
-import { CLOSED_STOPS, ON_THE_WAY_STOPS, READY_STOPS } from '@/design/fixtures';
+import { ReturnCard } from '@/components/driver/return-card';
+import {
+  ON_THE_WAY_STOPS,
+  READY_STOPS,
+  RETURN_STOPS,
+  TERMINAL_STOPS,
+} from '@/design/fixtures';
 import { STRINGS } from '@/locale/strings';
 
 /**
@@ -45,6 +51,8 @@ const ACTIVE = ON_THE_WAY_STOPS[0]!;
 
 const cardLabels = (locale: 'fr' | 'en') => ({
   cooler: STRINGS[locale].cooler,
+  priority: STRINGS[locale].priority,
+  packages: STRINGS[locale].packages,
   accessibilityPrefix: STRINGS[locale].accessibilityPrefix,
 });
 
@@ -62,6 +70,7 @@ const sheetLabels = (locale: 'fr' | 'en') => {
     pickup: t.takeCharge,
     delivered: t.delivered,
     returnOrder: t.returnOrder,
+    handover: t.handedBack,
   };
 };
 
@@ -95,13 +104,12 @@ describe('OrderCard', () => {
 });
 
 describe('ClosedOrderCard', () => {
-  const closed = CLOSED_STOPS[0]!;
+  const closed = TERMINAL_STOPS[0]!;
   const labels = {
     completed: STRINGS.fr.completed,
-    returned: STRINGS.fr.returned,
+    returned_to_pharmacy: STRINGS.fr.returned_to_pharmacy,
     cancelled: STRINGS.fr.cancelled,
     coolerPending: STRINGS.fr.coolerPending,
-    returnToPharmacy: STRINGS.fr.returnToPharmacy,
   };
 
   it('shows the order reference and outcome', () => {
@@ -120,7 +128,7 @@ describe('ClosedOrderCard', () => {
   });
 
   it('keeps an unanswered cooler check visible so it can be answered later', () => {
-    const pending = CLOSED_STOPS.find(
+    const pending = TERMINAL_STOPS.find(
       (stop) => stop.requires_cooler_bag && stop.cooler_bag_confirmed === null,
     )!;
     mount(<ClosedOrderCard stop={pending} locale="fr" labels={labels} />);
@@ -172,7 +180,7 @@ describe('StopSheet', () => {
 
 describe('QueueTabBar', () => {
   it('labels each tab with its count for screen readers', () => {
-    const counts = { ready: 8, on_the_way: 3, done: 12 };
+    const counts = { ready: 8, on_the_way: 3, to_hand_back: 2, done: 12 };
     mount(
       <QueueTabBar
         active="ready"
@@ -184,6 +192,64 @@ describe('QueueTabBar', () => {
 
     expect(screen.getByLabelText(`${STRINGS.fr.tabs.ready}, 8`)).toBeTruthy();
     expect(screen.getByLabelText(`${STRINGS.fr.tabs.on_the_way}, 3`)).toBeTruthy();
+  });
+
+  it('renders four tabs, including the return leg the PRD used to say we did not need', () => {
+    mount(
+      <QueueTabBar
+        active="to_hand_back"
+        counts={{ ready: 0, on_the_way: 0, to_hand_back: 2, done: 0 }}
+        labels={STRINGS.fr.tabs}
+        onChange={() => {}}
+      />,
+    );
+
+    expect(screen.getAllByRole('tab')).toHaveLength(4);
+    const tab = screen.getByLabelText(`${STRINGS.fr.tabs.to_hand_back}, 2`);
+    expect(tab.props.accessibilityState).toMatchObject({ selected: true });
+  });
+});
+
+/**
+ * The screen that only exists because `returned` stopped being terminal.
+ *
+ * Its whole reason to exist is the pair of facts in `privacy-rules.md` §1: the
+ * order is still open, and the patient's details are already gone. So the card
+ * has to show label codes — the driver matches parcels against them at the
+ * counter — and must not show anything that identifies a person.
+ */
+describe('ReturnCard', () => {
+  const returned = RETURN_STOPS[0]!;
+  const labels = {
+    reasons: STRINGS.fr.failureReasons,
+    cooler: STRINGS.fr.cooler,
+    handedBack: STRINGS.fr.handedBack,
+  };
+
+  it('shows the label codes the driver reads out at the counter', () => {
+    mount(<ReturnCard stop={returned} locale="fr" labels={labels} />);
+
+    for (const parcel of returned.packages) {
+      expect(screen.getByText(parcel.label_code)).toBeTruthy();
+    }
+  });
+
+  it('names why the delivery failed', () => {
+    mount(<ReturnCard stop={returned} locale="fr" labels={labels} />);
+
+    expect(
+      screen.getByText(STRINGS.fr.failureReasons[returned.failure_reason!]),
+    ).toBeTruthy();
+  });
+
+  it('renders no patient data, even though the order is not terminal', () => {
+    mount(<ReturnCard stop={returned} locale="fr" labels={labels} />);
+
+    for (const stop of [...READY_STOPS, ...ON_THE_WAY_STOPS]) {
+      expect(screen.queryByText(stop.patient_name)).toBeNull();
+      expect(screen.queryByText(stop.address)).toBeNull();
+      expect(screen.queryByText(stop.phone_number)).toBeNull();
+    }
   });
 });
 

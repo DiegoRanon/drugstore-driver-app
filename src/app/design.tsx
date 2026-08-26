@@ -17,7 +17,15 @@ import { ClosedOrderCard, OrderCard } from '@/components/driver/order-card';
 import { QueueTabBar, type QueueTab } from '@/components/driver/queue-tab-bar';
 import { StopSheet } from '@/components/driver/stop-sheet';
 import { GlassPanel } from '@/components/glass/glass-panel';
-import { CLOSED_STOPS, ON_THE_WAY_STOPS, PHARMACY, READY_STOPS } from '@/design/fixtures';
+import { ReturnCard } from '@/components/driver/return-card';
+import { DeadlineChip } from '@/components/driver/deadline-chip';
+import {
+  ON_THE_WAY_STOPS,
+  PHARMACY,
+  READY_STOPS,
+  RETURN_STOPS,
+  TERMINAL_STOPS,
+} from '@/design/fixtures';
 import { STRINGS } from '@/locale/strings';
 import { useTheme, useThemeMode } from '@/design/theme';
 import { Radius, Space, Type } from '@/design/tokens';
@@ -51,18 +59,23 @@ export default function DesignGallery() {
     () => ({
       ready: READY_STOPS.length,
       on_the_way: ON_THE_WAY_STOPS.length,
-      done: CLOSED_STOPS.length,
+      to_hand_back: RETURN_STOPS.length,
+      done: TERMINAL_STOPS.length,
     }),
     [],
   );
 
-  const cardLabels = { cooler: t.cooler, accessibilityPrefix: t.accessibilityPrefix };
+  const cardLabels = {
+    cooler: t.cooler,
+    priority: t.priority,
+    packages: t.packages,
+    accessibilityPrefix: t.accessibilityPrefix,
+  };
   const closedLabels = {
     completed: t.completed,
-    returned: t.returned,
+    returned_to_pharmacy: t.returned_to_pharmacy,
     cancelled: t.cancelled,
     coolerPending: t.coolerPending,
-    returnToPharmacy: t.returnToPharmacy,
   };
 
   const toggle = (id: string) =>
@@ -218,17 +231,43 @@ export default function DesignGallery() {
               pickup: t.takeCharge,
               delivered: t.delivered,
               returnOrder: t.returnOrder,
+              handover: t.handedBack,
             }}
           />
         ) : null}
 
-        <Caption color={theme.palette.accentDim} text="5 - Done tab, no patient data by construction" />
-        <Banner tone="accent" icon="cloud-upload-outline" message={t.pendingSync} />
-        {CLOSED_STOPS.map((stop) => (
+        <Caption
+          color={theme.palette.accentDim}
+          text="5 - A rapporter, the return leg. Label codes survive the PII strip"
+        />
+        <DeadlineChip
+          deadline={PHARMACY.return_deadline}
+          packages={RETURN_STOPS.reduce((n, stop) => n + stop.package_count, 0)}
+          labels={{
+            before: t.returnBefore,
+            passed: t.returnDeadlinePassed,
+            packages: t.packagesToReturn,
+          }}
+        />
+        {RETURN_STOPS.map((stop) => (
+          <ReturnCard
+            key={stop.id}
+            stop={stop}
+            locale={locale}
+            labels={{
+              reasons: t.failureReasons,
+              cooler: t.cooler,
+              handedBack: t.handedBack,
+            }}
+          />
+        ))}
+
+        <Caption color={theme.palette.accentDim} text="6 - Done tab, no patient data by construction" />
+        {TERMINAL_STOPS.map((stop) => (
           <ClosedOrderCard key={stop.id} stop={stop} locale={locale} labels={closedLabels} />
         ))}
 
-        <Caption color={theme.palette.accentDim} text="6 - States" />
+        <Caption color={theme.palette.accentDim} text="7 - States" />
         <Banner tone="danger" icon="cloud-offline-outline" message={t.offline} />
         <EmptyState icon="file-tray-outline" title={t.emptyTitle} body={t.emptyBody} />
         <PrimaryAction label={t.delivered} loading />

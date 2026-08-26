@@ -45,13 +45,15 @@ import { ApiError } from '../errors';
 import { resetRefreshState, setSessionTerminationHandler } from '../refresh';
 import { isActiveStop, type QueueResponse } from '../types';
 import { loadSession, resetSessionCache, saveSession } from '@/auth/token-store';
+import { fetchWithLoginBudget, withLoginBudget } from '@/test-support/live-login';
 
 const DRIVER = {
   email: 'driver@stlaurent.example.ca',
   password: 'DevPassword123!',
 };
 
-jest.setTimeout(30_000);
+/* Long enough to sit out the login limiter — see src/test-support/live-login.ts. */
+jest.setTimeout(120_000);
 
 function describeQueue(queue: QueueResponse): string {
   const lines: string[] = [
@@ -150,7 +152,7 @@ describe('live server', () => {
   });
 
   it('signs the seeded driver in and stores the token pair', async () => {
-    const session = await login(DRIVER);
+    const session = await withLoginBudget(() => login(DRIVER));
 
     expect(session.user.role).toBe('driver');
     expect(session.user.email).toBe(DRIVER.email);
@@ -256,7 +258,7 @@ describe('live server', () => {
    * recovers on its own without the driver noticing.
    */
   it('refreshes silently when the access token has expired', async () => {
-    await login(DRIVER);
+    await withLoginBudget(() => login(DRIVER));
     const before = await loadSession();
     if (!before) throw new Error('login did not persist a session');
 
@@ -309,7 +311,7 @@ describe('live server', () => {
     setSessionTerminationHandler((error) => terminations.push(error));
 
     try {
-      await login(DRIVER);
+      await withLoginBudget(() => login(DRIVER));
       expect(await loadSession()).not.toBeNull();
 
       await adminPatch(admin, driverId, false);
@@ -334,7 +336,7 @@ describe('live server', () => {
     }
 
     // Reactivated: the driver can sign in again.
-    const session = await login(DRIVER);
+    const session = await withLoginBudget(() => login(DRIVER));
     expect(session.user.role).toBe('driver');
   });
 
@@ -355,7 +357,7 @@ describe('live server', () => {
     const driverId = await findDriverId(admin);
 
     try {
-      await login(DRIVER);
+      await withLoginBudget(() => login(DRIVER));
       await adminPatch(admin, driverId, false);
 
       const queue = await getQueue();
@@ -376,7 +378,7 @@ describe('live server', () => {
 /* -------------------------------------------------------------------------- */
 
 async function adminToken(): Promise<string> {
-  const res = await fetch(`${API_BASE_URL}/v1/auth/login`, {
+  const res = await fetchWithLoginBudget(`${API_BASE_URL}/v1/auth/login`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({

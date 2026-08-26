@@ -658,9 +658,12 @@ export interface paths {
             parameters: {
                 query?: {
                     date?: string;
-                    status?: "in_pharmacy" | "picked_up" | "completed" | "returned" | "cancelled";
+                    from?: string;
+                    to?: string;
+                    status?: "scheduled" | "in_pharmacy" | "picked_up" | "completed" | "returned" | "returned_to_pharmacy" | "cancelled";
                     driver_id?: string;
                     client_id?: string;
+                    is_priority?: "true" | "false";
                     updated_since?: string;
                     limit?: number;
                     cursor?: string;
@@ -688,11 +691,14 @@ export interface paths {
                                 patient_name: string;
                                 address: string;
                                 phone_number: string;
+                                authorized_recipient: string | null;
                                 delivery_date: string;
                                 /** @enum {string} */
                                 delivery_window: "AM" | "PM";
+                                requested_delivery_time: string | null;
                                 /** @enum {string} */
-                                status: "in_pharmacy" | "picked_up" | "completed" | "returned" | "cancelled";
+                                status: "scheduled" | "in_pharmacy" | "picked_up" | "completed" | "returned" | "returned_to_pharmacy" | "cancelled";
+                                is_priority: boolean;
                                 sequence_number: number | null;
                                 /** @enum {string} */
                                 payment_status: "paid" | "unpaid";
@@ -701,11 +707,29 @@ export interface paths {
                                 payment_method: "cash" | "card" | null;
                                 amount_due: number | null;
                                 amount_collected: number | null;
+                                /** @enum {string|null} */
+                                payment_exception: "waived_by_pharmacy" | "deferred_to_pharmacy" | null;
+                                payment_exception_note: string | null;
+                                /** @enum {string|null} */
+                                failure_reason: "customer_absent" | "customer_refused" | "wrong_address" | "payment_refused" | "other" | null;
+                                failure_note: string | null;
                                 requires_cooler_bag: boolean;
                                 cooler_bag_confirmed: boolean | null;
+                                packages: {
+                                    /** Format: uuid */
+                                    id: string;
+                                    label_code: string;
+                                    /** @enum {string} */
+                                    package_type: "bag" | "cooler" | "tote" | "envelope";
+                                    position: number;
+                                }[];
+                                package_count: number;
+                                pickup_package_count: number | null;
+                                ready_at: string | null;
                                 picked_up_at: string | null;
                                 completed_at: string | null;
                                 returned_at: string | null;
+                                returned_to_pharmacy_at: string | null;
                                 cancelled_at: string | null;
                                 created_at: string;
                                 updated_at: string;
@@ -718,7 +742,10 @@ export interface paths {
             };
         };
         put?: never;
-        /** Create a delivery, snapshotting client details */
+        /**
+         * Schedule a delivery, snapshotting client details
+         * @description Creates the order in the admin calendar with status 'scheduled'. It is invisible to drivers until staff call POST /v1/orders/{id}/ready.
+         */
         post: {
             parameters: {
                 query?: never;
@@ -736,13 +763,21 @@ export interface paths {
                         patient_name?: string;
                         address?: string;
                         phone_number?: string;
+                        authorized_recipient?: string | null;
                         delivery_date: string;
                         /** @enum {string} */
                         delivery_window: "AM" | "PM";
+                        requested_delivery_time?: string | null;
                         /** @enum {string} */
                         payment_status?: "paid" | "unpaid";
                         amount_due?: number | null;
                         requires_cooler_bag?: boolean;
+                        is_priority?: boolean;
+                        packages?: {
+                            label_code: string;
+                            /** @enum {string} */
+                            package_type?: "bag" | "cooler" | "tote" | "envelope";
+                        }[];
                     };
                 };
             };
@@ -763,11 +798,14 @@ export interface paths {
                             patient_name: string;
                             address: string;
                             phone_number: string;
+                            authorized_recipient: string | null;
                             delivery_date: string;
                             /** @enum {string} */
                             delivery_window: "AM" | "PM";
+                            requested_delivery_time: string | null;
                             /** @enum {string} */
-                            status: "in_pharmacy" | "picked_up" | "completed" | "returned" | "cancelled";
+                            status: "scheduled" | "in_pharmacy" | "picked_up" | "completed" | "returned" | "returned_to_pharmacy" | "cancelled";
+                            is_priority: boolean;
                             sequence_number: number | null;
                             /** @enum {string} */
                             payment_status: "paid" | "unpaid";
@@ -776,11 +814,29 @@ export interface paths {
                             payment_method: "cash" | "card" | null;
                             amount_due: number | null;
                             amount_collected: number | null;
+                            /** @enum {string|null} */
+                            payment_exception: "waived_by_pharmacy" | "deferred_to_pharmacy" | null;
+                            payment_exception_note: string | null;
+                            /** @enum {string|null} */
+                            failure_reason: "customer_absent" | "customer_refused" | "wrong_address" | "payment_refused" | "other" | null;
+                            failure_note: string | null;
                             requires_cooler_bag: boolean;
                             cooler_bag_confirmed: boolean | null;
+                            packages: {
+                                /** Format: uuid */
+                                id: string;
+                                label_code: string;
+                                /** @enum {string} */
+                                package_type: "bag" | "cooler" | "tote" | "envelope";
+                                position: number;
+                            }[];
+                            package_count: number;
+                            pickup_package_count: number | null;
+                            ready_at: string | null;
                             picked_up_at: string | null;
                             completed_at: string | null;
                             returned_at: string | null;
+                            returned_to_pharmacy_at: string | null;
                             cancelled_at: string | null;
                             created_at: string;
                             updated_at: string;
@@ -789,6 +845,64 @@ export interface paths {
                 };
             };
         };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/orders/calendar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Per-day order counts for the admin calendar
+         * @description Counts only — no patient details are returned, and this read is not audit-logged.
+         */
+        get: {
+            parameters: {
+                query: {
+                    from: string;
+                    to: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            from: string;
+                            to: string;
+                            days: {
+                                delivery_date: string;
+                                total: number;
+                                by_status: {
+                                    scheduled: number;
+                                    in_pharmacy: number;
+                                    picked_up: number;
+                                    completed: number;
+                                    returned: number;
+                                    returned_to_pharmacy: number;
+                                    cancelled: number;
+                                };
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -830,11 +944,14 @@ export interface paths {
                             patient_name: string;
                             address: string;
                             phone_number: string;
+                            authorized_recipient: string | null;
                             delivery_date: string;
                             /** @enum {string} */
                             delivery_window: "AM" | "PM";
+                            requested_delivery_time: string | null;
                             /** @enum {string} */
-                            status: "in_pharmacy" | "picked_up" | "completed" | "returned" | "cancelled";
+                            status: "scheduled" | "in_pharmacy" | "picked_up" | "completed" | "returned" | "returned_to_pharmacy" | "cancelled";
+                            is_priority: boolean;
                             sequence_number: number | null;
                             /** @enum {string} */
                             payment_status: "paid" | "unpaid";
@@ -843,22 +960,40 @@ export interface paths {
                             payment_method: "cash" | "card" | null;
                             amount_due: number | null;
                             amount_collected: number | null;
+                            /** @enum {string|null} */
+                            payment_exception: "waived_by_pharmacy" | "deferred_to_pharmacy" | null;
+                            payment_exception_note: string | null;
+                            /** @enum {string|null} */
+                            failure_reason: "customer_absent" | "customer_refused" | "wrong_address" | "payment_refused" | "other" | null;
+                            failure_note: string | null;
                             requires_cooler_bag: boolean;
                             cooler_bag_confirmed: boolean | null;
+                            packages: {
+                                /** Format: uuid */
+                                id: string;
+                                label_code: string;
+                                /** @enum {string} */
+                                package_type: "bag" | "cooler" | "tote" | "envelope";
+                                position: number;
+                            }[];
+                            package_count: number;
+                            pickup_package_count: number | null;
+                            ready_at: string | null;
                             picked_up_at: string | null;
                             completed_at: string | null;
                             returned_at: string | null;
+                            returned_to_pharmacy_at: string | null;
                             cancelled_at: string | null;
                             created_at: string;
                             updated_at: string;
                             status_events: {
                                 /** @enum {string} */
-                                status: "in_pharmacy" | "picked_up" | "completed" | "returned" | "cancelled";
+                                status: "scheduled" | "in_pharmacy" | "picked_up" | "completed" | "returned" | "returned_to_pharmacy" | "cancelled";
                                 /** Format: uuid */
                                 changed_by_user_id: string | null;
                                 occurred_at: string;
                             }[];
-                            available_transitions: ("pickup" | "complete" | "return" | "cancel")[];
+                            available_transitions: ("mark_ready" | "pickup" | "complete" | "return" | "handover" | "cancel")[];
                         };
                     };
                 };
@@ -869,7 +1004,7 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
-        /** Edit an order (only while in_pharmacy) */
+        /** Edit an order (only while scheduled or in_pharmacy) */
         patch: {
             parameters: {
                 query?: never;
@@ -885,13 +1020,21 @@ export interface paths {
                         patient_name?: string;
                         address?: string;
                         phone_number?: string;
+                        authorized_recipient?: string | null;
                         delivery_date?: string;
                         /** @enum {string} */
                         delivery_window?: "AM" | "PM";
+                        requested_delivery_time?: string | null;
                         /** @enum {string} */
                         payment_status?: "paid" | "unpaid";
                         amount_due?: number | null;
                         requires_cooler_bag?: boolean;
+                        is_priority?: boolean;
+                        packages?: {
+                            label_code: string;
+                            /** @enum {string} */
+                            package_type?: "bag" | "cooler" | "tote" | "envelope";
+                        }[];
                     };
                 };
             };
@@ -912,11 +1055,14 @@ export interface paths {
                             patient_name: string;
                             address: string;
                             phone_number: string;
+                            authorized_recipient: string | null;
                             delivery_date: string;
                             /** @enum {string} */
                             delivery_window: "AM" | "PM";
+                            requested_delivery_time: string | null;
                             /** @enum {string} */
-                            status: "in_pharmacy" | "picked_up" | "completed" | "returned" | "cancelled";
+                            status: "scheduled" | "in_pharmacy" | "picked_up" | "completed" | "returned" | "returned_to_pharmacy" | "cancelled";
+                            is_priority: boolean;
                             sequence_number: number | null;
                             /** @enum {string} */
                             payment_status: "paid" | "unpaid";
@@ -925,11 +1071,29 @@ export interface paths {
                             payment_method: "cash" | "card" | null;
                             amount_due: number | null;
                             amount_collected: number | null;
+                            /** @enum {string|null} */
+                            payment_exception: "waived_by_pharmacy" | "deferred_to_pharmacy" | null;
+                            payment_exception_note: string | null;
+                            /** @enum {string|null} */
+                            failure_reason: "customer_absent" | "customer_refused" | "wrong_address" | "payment_refused" | "other" | null;
+                            failure_note: string | null;
                             requires_cooler_bag: boolean;
                             cooler_bag_confirmed: boolean | null;
+                            packages: {
+                                /** Format: uuid */
+                                id: string;
+                                label_code: string;
+                                /** @enum {string} */
+                                package_type: "bag" | "cooler" | "tote" | "envelope";
+                                position: number;
+                            }[];
+                            package_count: number;
+                            pickup_package_count: number | null;
+                            ready_at: string | null;
                             picked_up_at: string | null;
                             completed_at: string | null;
                             returned_at: string | null;
+                            returned_to_pharmacy_at: string | null;
                             cancelled_at: string | null;
                             created_at: string;
                             updated_at: string;
@@ -938,6 +1102,99 @@ export interface paths {
                 };
             };
         };
+        trace?: never;
+    };
+    "/v1/orders/{id}/ready": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Declare the order physically prepared and ready for pickup
+         * @description Moves the order out of the calendar and onto the counter. Notifies the assigned driver, if there is one.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** Format: uuid */
+                            id: string;
+                            /** Format: uuid */
+                            client_id: string;
+                            /** Format: uuid */
+                            driver_id: string | null;
+                            patient_name: string;
+                            address: string;
+                            phone_number: string;
+                            authorized_recipient: string | null;
+                            delivery_date: string;
+                            /** @enum {string} */
+                            delivery_window: "AM" | "PM";
+                            requested_delivery_time: string | null;
+                            /** @enum {string} */
+                            status: "scheduled" | "in_pharmacy" | "picked_up" | "completed" | "returned" | "returned_to_pharmacy" | "cancelled";
+                            is_priority: boolean;
+                            sequence_number: number | null;
+                            /** @enum {string} */
+                            payment_status: "paid" | "unpaid";
+                            payment_collected: boolean;
+                            /** @enum {string|null} */
+                            payment_method: "cash" | "card" | null;
+                            amount_due: number | null;
+                            amount_collected: number | null;
+                            /** @enum {string|null} */
+                            payment_exception: "waived_by_pharmacy" | "deferred_to_pharmacy" | null;
+                            payment_exception_note: string | null;
+                            /** @enum {string|null} */
+                            failure_reason: "customer_absent" | "customer_refused" | "wrong_address" | "payment_refused" | "other" | null;
+                            failure_note: string | null;
+                            requires_cooler_bag: boolean;
+                            cooler_bag_confirmed: boolean | null;
+                            packages: {
+                                /** Format: uuid */
+                                id: string;
+                                label_code: string;
+                                /** @enum {string} */
+                                package_type: "bag" | "cooler" | "tote" | "envelope";
+                                position: number;
+                            }[];
+                            package_count: number;
+                            pickup_package_count: number | null;
+                            ready_at: string | null;
+                            picked_up_at: string | null;
+                            completed_at: string | null;
+                            returned_at: string | null;
+                            returned_to_pharmacy_at: string | null;
+                            cancelled_at: string | null;
+                            created_at: string;
+                            updated_at: string;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/v1/orders/{id}/assign": {
@@ -984,11 +1241,14 @@ export interface paths {
                             patient_name: string;
                             address: string;
                             phone_number: string;
+                            authorized_recipient: string | null;
                             delivery_date: string;
                             /** @enum {string} */
                             delivery_window: "AM" | "PM";
+                            requested_delivery_time: string | null;
                             /** @enum {string} */
-                            status: "in_pharmacy" | "picked_up" | "completed" | "returned" | "cancelled";
+                            status: "scheduled" | "in_pharmacy" | "picked_up" | "completed" | "returned" | "returned_to_pharmacy" | "cancelled";
+                            is_priority: boolean;
                             sequence_number: number | null;
                             /** @enum {string} */
                             payment_status: "paid" | "unpaid";
@@ -997,11 +1257,125 @@ export interface paths {
                             payment_method: "cash" | "card" | null;
                             amount_due: number | null;
                             amount_collected: number | null;
+                            /** @enum {string|null} */
+                            payment_exception: "waived_by_pharmacy" | "deferred_to_pharmacy" | null;
+                            payment_exception_note: string | null;
+                            /** @enum {string|null} */
+                            failure_reason: "customer_absent" | "customer_refused" | "wrong_address" | "payment_refused" | "other" | null;
+                            failure_note: string | null;
                             requires_cooler_bag: boolean;
                             cooler_bag_confirmed: boolean | null;
+                            packages: {
+                                /** Format: uuid */
+                                id: string;
+                                label_code: string;
+                                /** @enum {string} */
+                                package_type: "bag" | "cooler" | "tote" | "envelope";
+                                position: number;
+                            }[];
+                            package_count: number;
+                            pickup_package_count: number | null;
+                            ready_at: string | null;
                             picked_up_at: string | null;
                             completed_at: string | null;
                             returned_at: string | null;
+                            returned_to_pharmacy_at: string | null;
+                            cancelled_at: string | null;
+                            created_at: string;
+                            updated_at: string;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/orders/{id}/priority": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Flag or unflag an order as a priority stop */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        is_priority: boolean;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** Format: uuid */
+                            id: string;
+                            /** Format: uuid */
+                            client_id: string;
+                            /** Format: uuid */
+                            driver_id: string | null;
+                            patient_name: string;
+                            address: string;
+                            phone_number: string;
+                            authorized_recipient: string | null;
+                            delivery_date: string;
+                            /** @enum {string} */
+                            delivery_window: "AM" | "PM";
+                            requested_delivery_time: string | null;
+                            /** @enum {string} */
+                            status: "scheduled" | "in_pharmacy" | "picked_up" | "completed" | "returned" | "returned_to_pharmacy" | "cancelled";
+                            is_priority: boolean;
+                            sequence_number: number | null;
+                            /** @enum {string} */
+                            payment_status: "paid" | "unpaid";
+                            payment_collected: boolean;
+                            /** @enum {string|null} */
+                            payment_method: "cash" | "card" | null;
+                            amount_due: number | null;
+                            amount_collected: number | null;
+                            /** @enum {string|null} */
+                            payment_exception: "waived_by_pharmacy" | "deferred_to_pharmacy" | null;
+                            payment_exception_note: string | null;
+                            /** @enum {string|null} */
+                            failure_reason: "customer_absent" | "customer_refused" | "wrong_address" | "payment_refused" | "other" | null;
+                            failure_note: string | null;
+                            requires_cooler_bag: boolean;
+                            cooler_bag_confirmed: boolean | null;
+                            packages: {
+                                /** Format: uuid */
+                                id: string;
+                                label_code: string;
+                                /** @enum {string} */
+                                package_type: "bag" | "cooler" | "tote" | "envelope";
+                                position: number;
+                            }[];
+                            package_count: number;
+                            pickup_package_count: number | null;
+                            ready_at: string | null;
+                            picked_up_at: string | null;
+                            completed_at: string | null;
+                            returned_at: string | null;
+                            returned_to_pharmacy_at: string | null;
                             cancelled_at: string | null;
                             created_at: string;
                             updated_at: string;
@@ -1053,11 +1427,14 @@ export interface paths {
                             patient_name: string;
                             address: string;
                             phone_number: string;
+                            authorized_recipient: string | null;
                             delivery_date: string;
                             /** @enum {string} */
                             delivery_window: "AM" | "PM";
+                            requested_delivery_time: string | null;
                             /** @enum {string} */
-                            status: "in_pharmacy" | "picked_up" | "completed" | "returned" | "cancelled";
+                            status: "scheduled" | "in_pharmacy" | "picked_up" | "completed" | "returned" | "returned_to_pharmacy" | "cancelled";
+                            is_priority: boolean;
                             sequence_number: number | null;
                             /** @enum {string} */
                             payment_status: "paid" | "unpaid";
@@ -1066,11 +1443,29 @@ export interface paths {
                             payment_method: "cash" | "card" | null;
                             amount_due: number | null;
                             amount_collected: number | null;
+                            /** @enum {string|null} */
+                            payment_exception: "waived_by_pharmacy" | "deferred_to_pharmacy" | null;
+                            payment_exception_note: string | null;
+                            /** @enum {string|null} */
+                            failure_reason: "customer_absent" | "customer_refused" | "wrong_address" | "payment_refused" | "other" | null;
+                            failure_note: string | null;
                             requires_cooler_bag: boolean;
                             cooler_bag_confirmed: boolean | null;
+                            packages: {
+                                /** Format: uuid */
+                                id: string;
+                                label_code: string;
+                                /** @enum {string} */
+                                package_type: "bag" | "cooler" | "tote" | "envelope";
+                                position: number;
+                            }[];
+                            package_count: number;
+                            pickup_package_count: number | null;
+                            ready_at: string | null;
                             picked_up_at: string | null;
                             completed_at: string | null;
                             returned_at: string | null;
+                            returned_to_pharmacy_at: string | null;
                             cancelled_at: string | null;
                             created_at: string;
                             updated_at: string;
@@ -1237,11 +1632,12 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Active stops for a day, in route order */
+        /** The driver's day: stops, packages owed back, and totals */
         get: {
             parameters: {
                 query?: {
                     date?: string;
+                    updated_since?: string;
                 };
                 header?: never;
                 path?: never;
@@ -1260,6 +1656,7 @@ export interface paths {
                             pharmacy: {
                                 name: string;
                                 phone: string | null;
+                                return_deadline: string | null;
                             };
                             stops: ({
                                 /** Format: uuid */
@@ -1267,42 +1664,119 @@ export interface paths {
                                 /** @enum {string} */
                                 status: "in_pharmacy" | "picked_up";
                                 sequence_number: number | null;
+                                is_priority: boolean;
                                 delivery_date: string;
                                 /** @enum {string} */
                                 delivery_window: "AM" | "PM";
+                                requested_delivery_time: string | null;
                                 patient_name: string;
                                 address: string;
                                 phone_number: string;
+                                authorized_recipient: string | null;
                                 amount_due: number | null;
                                 /** @enum {string} */
                                 payment_status: "paid" | "unpaid";
                                 payment_collected: boolean;
                                 requires_cooler_bag: boolean;
+                                packages: {
+                                    /** Format: uuid */
+                                    id: string;
+                                    label_code: string;
+                                    /** @enum {string} */
+                                    package_type: "bag" | "cooler" | "tote" | "envelope";
+                                    position: number;
+                                }[];
+                                package_count: number;
                                 picked_up_at: string | null;
                             } | {
                                 /** Format: uuid */
                                 id: string;
                                 /** @enum {string} */
-                                status: "completed" | "returned" | "cancelled";
+                                status: "completed" | "returned" | "returned_to_pharmacy" | "cancelled";
                                 delivery_date: string;
+                                /** @enum {string|null} */
+                                failure_reason: "customer_absent" | "customer_refused" | "wrong_address" | "payment_refused" | "other" | null;
+                                requires_cooler_bag: boolean;
+                                cooler_bag_confirmed: boolean | null;
+                                packages: {
+                                    /** Format: uuid */
+                                    id: string;
+                                    label_code: string;
+                                    /** @enum {string} */
+                                    package_type: "bag" | "cooler" | "tote" | "envelope";
+                                    position: number;
+                                }[];
+                                package_count: number;
                                 picked_up_at: string | null;
                                 completed_at: string | null;
                                 returned_at: string | null;
+                                returned_to_pharmacy_at: string | null;
+                            })[];
+                            to_return: {
+                                /** Format: uuid */
+                                id: string;
+                                /** @enum {string} */
+                                status: "completed" | "returned" | "returned_to_pharmacy" | "cancelled";
+                                delivery_date: string;
+                                /** @enum {string|null} */
+                                failure_reason: "customer_absent" | "customer_refused" | "wrong_address" | "payment_refused" | "other" | null;
                                 requires_cooler_bag: boolean;
                                 cooler_bag_confirmed: boolean | null;
-                            })[];
+                                packages: {
+                                    /** Format: uuid */
+                                    id: string;
+                                    label_code: string;
+                                    /** @enum {string} */
+                                    package_type: "bag" | "cooler" | "tote" | "envelope";
+                                    position: number;
+                                }[];
+                                package_count: number;
+                                picked_up_at: string | null;
+                                completed_at: string | null;
+                                returned_at: string | null;
+                                returned_to_pharmacy_at: string | null;
+                            }[];
                             closed: {
                                 /** Format: uuid */
                                 id: string;
                                 /** @enum {string} */
-                                status: "completed" | "returned" | "cancelled";
+                                status: "completed" | "returned" | "returned_to_pharmacy" | "cancelled";
                                 delivery_date: string;
+                                /** @enum {string|null} */
+                                failure_reason: "customer_absent" | "customer_refused" | "wrong_address" | "payment_refused" | "other" | null;
+                                requires_cooler_bag: boolean;
+                                cooler_bag_confirmed: boolean | null;
+                                packages: {
+                                    /** Format: uuid */
+                                    id: string;
+                                    label_code: string;
+                                    /** @enum {string} */
+                                    package_type: "bag" | "cooler" | "tote" | "envelope";
+                                    position: number;
+                                }[];
+                                package_count: number;
                                 picked_up_at: string | null;
                                 completed_at: string | null;
                                 returned_at: string | null;
-                                requires_cooler_bag: boolean;
-                                cooler_bag_confirmed: boolean | null;
+                                returned_to_pharmacy_at: string | null;
                             }[];
+                            totals: {
+                                stop_count: number;
+                                priority_count: number;
+                                payment_stop_count: number;
+                                amount_due_total: number;
+                                requires_payment_terminal: boolean;
+                                packages_to_return: number;
+                            };
+                            estimates?: {
+                                /** Format: uuid */
+                                order_id: string;
+                                distance_meters: number | null;
+                                duration_seconds: number | null;
+                            }[];
+                            unread_notifications: number;
+                            has_new: boolean;
+                            last_updated_at: string | null;
                             degraded?: boolean;
                         };
                     };
@@ -1326,7 +1800,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Recalculate the optimal stop order */
+        /** Suggest a stop order and travel estimates */
         post: {
             parameters: {
                 query?: never;
@@ -1357,6 +1831,7 @@ export interface paths {
                             pharmacy: {
                                 name: string;
                                 phone: string | null;
+                                return_deadline: string | null;
                             };
                             stops: ({
                                 /** Format: uuid */
@@ -1364,42 +1839,292 @@ export interface paths {
                                 /** @enum {string} */
                                 status: "in_pharmacy" | "picked_up";
                                 sequence_number: number | null;
+                                is_priority: boolean;
                                 delivery_date: string;
                                 /** @enum {string} */
                                 delivery_window: "AM" | "PM";
+                                requested_delivery_time: string | null;
                                 patient_name: string;
                                 address: string;
                                 phone_number: string;
+                                authorized_recipient: string | null;
                                 amount_due: number | null;
                                 /** @enum {string} */
                                 payment_status: "paid" | "unpaid";
                                 payment_collected: boolean;
                                 requires_cooler_bag: boolean;
+                                packages: {
+                                    /** Format: uuid */
+                                    id: string;
+                                    label_code: string;
+                                    /** @enum {string} */
+                                    package_type: "bag" | "cooler" | "tote" | "envelope";
+                                    position: number;
+                                }[];
+                                package_count: number;
                                 picked_up_at: string | null;
                             } | {
                                 /** Format: uuid */
                                 id: string;
                                 /** @enum {string} */
-                                status: "completed" | "returned" | "cancelled";
+                                status: "completed" | "returned" | "returned_to_pharmacy" | "cancelled";
                                 delivery_date: string;
+                                /** @enum {string|null} */
+                                failure_reason: "customer_absent" | "customer_refused" | "wrong_address" | "payment_refused" | "other" | null;
+                                requires_cooler_bag: boolean;
+                                cooler_bag_confirmed: boolean | null;
+                                packages: {
+                                    /** Format: uuid */
+                                    id: string;
+                                    label_code: string;
+                                    /** @enum {string} */
+                                    package_type: "bag" | "cooler" | "tote" | "envelope";
+                                    position: number;
+                                }[];
+                                package_count: number;
                                 picked_up_at: string | null;
                                 completed_at: string | null;
                                 returned_at: string | null;
+                                returned_to_pharmacy_at: string | null;
+                            })[];
+                            to_return: {
+                                /** Format: uuid */
+                                id: string;
+                                /** @enum {string} */
+                                status: "completed" | "returned" | "returned_to_pharmacy" | "cancelled";
+                                delivery_date: string;
+                                /** @enum {string|null} */
+                                failure_reason: "customer_absent" | "customer_refused" | "wrong_address" | "payment_refused" | "other" | null;
                                 requires_cooler_bag: boolean;
                                 cooler_bag_confirmed: boolean | null;
-                            })[];
+                                packages: {
+                                    /** Format: uuid */
+                                    id: string;
+                                    label_code: string;
+                                    /** @enum {string} */
+                                    package_type: "bag" | "cooler" | "tote" | "envelope";
+                                    position: number;
+                                }[];
+                                package_count: number;
+                                picked_up_at: string | null;
+                                completed_at: string | null;
+                                returned_at: string | null;
+                                returned_to_pharmacy_at: string | null;
+                            }[];
                             closed: {
                                 /** Format: uuid */
                                 id: string;
                                 /** @enum {string} */
-                                status: "completed" | "returned" | "cancelled";
+                                status: "completed" | "returned" | "returned_to_pharmacy" | "cancelled";
                                 delivery_date: string;
+                                /** @enum {string|null} */
+                                failure_reason: "customer_absent" | "customer_refused" | "wrong_address" | "payment_refused" | "other" | null;
+                                requires_cooler_bag: boolean;
+                                cooler_bag_confirmed: boolean | null;
+                                packages: {
+                                    /** Format: uuid */
+                                    id: string;
+                                    label_code: string;
+                                    /** @enum {string} */
+                                    package_type: "bag" | "cooler" | "tote" | "envelope";
+                                    position: number;
+                                }[];
+                                package_count: number;
                                 picked_up_at: string | null;
                                 completed_at: string | null;
                                 returned_at: string | null;
+                                returned_to_pharmacy_at: string | null;
+                            }[];
+                            totals: {
+                                stop_count: number;
+                                priority_count: number;
+                                payment_stop_count: number;
+                                amount_due_total: number;
+                                requires_payment_terminal: boolean;
+                                packages_to_return: number;
+                            };
+                            estimates?: {
+                                /** Format: uuid */
+                                order_id: string;
+                                distance_meters: number | null;
+                                duration_seconds: number | null;
+                            }[];
+                            unread_notifications: number;
+                            has_new: boolean;
+                            last_updated_at: string | null;
+                            degraded?: boolean;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/driver/queue/sequence": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Set the stop order manually
+         * @description The driver chooses their own route; this records it. Overrides whatever the optimizer suggested.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        date?: string;
+                        ordered_order_ids: string[];
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            date: string;
+                            pharmacy: {
+                                name: string;
+                                phone: string | null;
+                                return_deadline: string | null;
+                            };
+                            stops: ({
+                                /** Format: uuid */
+                                id: string;
+                                /** @enum {string} */
+                                status: "in_pharmacy" | "picked_up";
+                                sequence_number: number | null;
+                                is_priority: boolean;
+                                delivery_date: string;
+                                /** @enum {string} */
+                                delivery_window: "AM" | "PM";
+                                requested_delivery_time: string | null;
+                                patient_name: string;
+                                address: string;
+                                phone_number: string;
+                                authorized_recipient: string | null;
+                                amount_due: number | null;
+                                /** @enum {string} */
+                                payment_status: "paid" | "unpaid";
+                                payment_collected: boolean;
+                                requires_cooler_bag: boolean;
+                                packages: {
+                                    /** Format: uuid */
+                                    id: string;
+                                    label_code: string;
+                                    /** @enum {string} */
+                                    package_type: "bag" | "cooler" | "tote" | "envelope";
+                                    position: number;
+                                }[];
+                                package_count: number;
+                                picked_up_at: string | null;
+                            } | {
+                                /** Format: uuid */
+                                id: string;
+                                /** @enum {string} */
+                                status: "completed" | "returned" | "returned_to_pharmacy" | "cancelled";
+                                delivery_date: string;
+                                /** @enum {string|null} */
+                                failure_reason: "customer_absent" | "customer_refused" | "wrong_address" | "payment_refused" | "other" | null;
                                 requires_cooler_bag: boolean;
                                 cooler_bag_confirmed: boolean | null;
+                                packages: {
+                                    /** Format: uuid */
+                                    id: string;
+                                    label_code: string;
+                                    /** @enum {string} */
+                                    package_type: "bag" | "cooler" | "tote" | "envelope";
+                                    position: number;
+                                }[];
+                                package_count: number;
+                                picked_up_at: string | null;
+                                completed_at: string | null;
+                                returned_at: string | null;
+                                returned_to_pharmacy_at: string | null;
+                            })[];
+                            to_return: {
+                                /** Format: uuid */
+                                id: string;
+                                /** @enum {string} */
+                                status: "completed" | "returned" | "returned_to_pharmacy" | "cancelled";
+                                delivery_date: string;
+                                /** @enum {string|null} */
+                                failure_reason: "customer_absent" | "customer_refused" | "wrong_address" | "payment_refused" | "other" | null;
+                                requires_cooler_bag: boolean;
+                                cooler_bag_confirmed: boolean | null;
+                                packages: {
+                                    /** Format: uuid */
+                                    id: string;
+                                    label_code: string;
+                                    /** @enum {string} */
+                                    package_type: "bag" | "cooler" | "tote" | "envelope";
+                                    position: number;
+                                }[];
+                                package_count: number;
+                                picked_up_at: string | null;
+                                completed_at: string | null;
+                                returned_at: string | null;
+                                returned_to_pharmacy_at: string | null;
                             }[];
+                            closed: {
+                                /** Format: uuid */
+                                id: string;
+                                /** @enum {string} */
+                                status: "completed" | "returned" | "returned_to_pharmacy" | "cancelled";
+                                delivery_date: string;
+                                /** @enum {string|null} */
+                                failure_reason: "customer_absent" | "customer_refused" | "wrong_address" | "payment_refused" | "other" | null;
+                                requires_cooler_bag: boolean;
+                                cooler_bag_confirmed: boolean | null;
+                                packages: {
+                                    /** Format: uuid */
+                                    id: string;
+                                    label_code: string;
+                                    /** @enum {string} */
+                                    package_type: "bag" | "cooler" | "tote" | "envelope";
+                                    position: number;
+                                }[];
+                                package_count: number;
+                                picked_up_at: string | null;
+                                completed_at: string | null;
+                                returned_at: string | null;
+                                returned_to_pharmacy_at: string | null;
+                            }[];
+                            totals: {
+                                stop_count: number;
+                                priority_count: number;
+                                payment_stop_count: number;
+                                amount_due_total: number;
+                                requires_payment_terminal: boolean;
+                                packages_to_return: number;
+                            };
+                            estimates?: {
+                                /** Format: uuid */
+                                order_id: string;
+                                distance_meters: number | null;
+                                duration_seconds: number | null;
+                            }[];
+                            unread_notifications: number;
+                            has_new: boolean;
+                            last_updated_at: string | null;
                             degraded?: boolean;
                         };
                     };
@@ -1431,7 +2156,13 @@ export interface paths {
                 };
                 cookie?: never;
             };
-            requestBody?: never;
+            requestBody: {
+                content: {
+                    "application/json": {
+                        confirmed_package_count?: number;
+                    };
+                };
+            };
             responses: {
                 /** @description Default Response */
                 200: {
@@ -1445,29 +2176,53 @@ export interface paths {
                             /** @enum {string} */
                             status: "in_pharmacy" | "picked_up";
                             sequence_number: number | null;
+                            is_priority: boolean;
                             delivery_date: string;
                             /** @enum {string} */
                             delivery_window: "AM" | "PM";
+                            requested_delivery_time: string | null;
                             patient_name: string;
                             address: string;
                             phone_number: string;
+                            authorized_recipient: string | null;
                             amount_due: number | null;
                             /** @enum {string} */
                             payment_status: "paid" | "unpaid";
                             payment_collected: boolean;
                             requires_cooler_bag: boolean;
+                            packages: {
+                                /** Format: uuid */
+                                id: string;
+                                label_code: string;
+                                /** @enum {string} */
+                                package_type: "bag" | "cooler" | "tote" | "envelope";
+                                position: number;
+                            }[];
+                            package_count: number;
                             picked_up_at: string | null;
                         } | {
                             /** Format: uuid */
                             id: string;
                             /** @enum {string} */
-                            status: "completed" | "returned" | "cancelled";
+                            status: "completed" | "returned" | "returned_to_pharmacy" | "cancelled";
                             delivery_date: string;
+                            /** @enum {string|null} */
+                            failure_reason: "customer_absent" | "customer_refused" | "wrong_address" | "payment_refused" | "other" | null;
+                            requires_cooler_bag: boolean;
+                            cooler_bag_confirmed: boolean | null;
+                            packages: {
+                                /** Format: uuid */
+                                id: string;
+                                label_code: string;
+                                /** @enum {string} */
+                                package_type: "bag" | "cooler" | "tote" | "envelope";
+                                position: number;
+                            }[];
+                            package_count: number;
                             picked_up_at: string | null;
                             completed_at: string | null;
                             returned_at: string | null;
-                            requires_cooler_bag: boolean;
-                            cooler_bag_confirmed: boolean | null;
+                            returned_to_pharmacy_at: string | null;
                         };
                     };
                 };
@@ -1488,7 +2243,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** One-tap proof of delivery */
+        /** Proof of delivery, with the payment taken at the door */
         post: {
             parameters: {
                 query?: never;
@@ -1498,7 +2253,20 @@ export interface paths {
                 };
                 cookie?: never;
             };
-            requestBody?: never;
+            requestBody: {
+                content: {
+                    "application/json": {
+                        payment?: {
+                            /** @enum {string} */
+                            payment_method: "cash" | "card";
+                            amount_collected: number;
+                        };
+                        /** @enum {string} */
+                        payment_exception?: "waived_by_pharmacy" | "deferred_to_pharmacy";
+                        payment_exception_note?: string;
+                    };
+                };
+            };
             responses: {
                 /** @description Default Response */
                 200: {
@@ -1512,29 +2280,53 @@ export interface paths {
                             /** @enum {string} */
                             status: "in_pharmacy" | "picked_up";
                             sequence_number: number | null;
+                            is_priority: boolean;
                             delivery_date: string;
                             /** @enum {string} */
                             delivery_window: "AM" | "PM";
+                            requested_delivery_time: string | null;
                             patient_name: string;
                             address: string;
                             phone_number: string;
+                            authorized_recipient: string | null;
                             amount_due: number | null;
                             /** @enum {string} */
                             payment_status: "paid" | "unpaid";
                             payment_collected: boolean;
                             requires_cooler_bag: boolean;
+                            packages: {
+                                /** Format: uuid */
+                                id: string;
+                                label_code: string;
+                                /** @enum {string} */
+                                package_type: "bag" | "cooler" | "tote" | "envelope";
+                                position: number;
+                            }[];
+                            package_count: number;
                             picked_up_at: string | null;
                         } | {
                             /** Format: uuid */
                             id: string;
                             /** @enum {string} */
-                            status: "completed" | "returned" | "cancelled";
+                            status: "completed" | "returned" | "returned_to_pharmacy" | "cancelled";
                             delivery_date: string;
+                            /** @enum {string|null} */
+                            failure_reason: "customer_absent" | "customer_refused" | "wrong_address" | "payment_refused" | "other" | null;
+                            requires_cooler_bag: boolean;
+                            cooler_bag_confirmed: boolean | null;
+                            packages: {
+                                /** Format: uuid */
+                                id: string;
+                                label_code: string;
+                                /** @enum {string} */
+                                package_type: "bag" | "cooler" | "tote" | "envelope";
+                                position: number;
+                            }[];
+                            package_count: number;
                             picked_up_at: string | null;
                             completed_at: string | null;
                             returned_at: string | null;
-                            requires_cooler_bag: boolean;
-                            cooler_bag_confirmed: boolean | null;
+                            returned_to_pharmacy_at: string | null;
                         };
                     };
                 };
@@ -1555,7 +2347,109 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Patient unavailable — return the package */
+        /**
+         * Mark a delivery failed, with the reason
+         * @description The package stays with the driver until it is handed back at the pharmacy via POST /v1/driver/returns/handover.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        reason: "customer_absent" | "customer_refused" | "wrong_address" | "payment_refused" | "other";
+                        note?: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** Format: uuid */
+                            id: string;
+                            /** @enum {string} */
+                            status: "in_pharmacy" | "picked_up";
+                            sequence_number: number | null;
+                            is_priority: boolean;
+                            delivery_date: string;
+                            /** @enum {string} */
+                            delivery_window: "AM" | "PM";
+                            requested_delivery_time: string | null;
+                            patient_name: string;
+                            address: string;
+                            phone_number: string;
+                            authorized_recipient: string | null;
+                            amount_due: number | null;
+                            /** @enum {string} */
+                            payment_status: "paid" | "unpaid";
+                            payment_collected: boolean;
+                            requires_cooler_bag: boolean;
+                            packages: {
+                                /** Format: uuid */
+                                id: string;
+                                label_code: string;
+                                /** @enum {string} */
+                                package_type: "bag" | "cooler" | "tote" | "envelope";
+                                position: number;
+                            }[];
+                            package_count: number;
+                            picked_up_at: string | null;
+                        } | {
+                            /** Format: uuid */
+                            id: string;
+                            /** @enum {string} */
+                            status: "completed" | "returned" | "returned_to_pharmacy" | "cancelled";
+                            delivery_date: string;
+                            /** @enum {string|null} */
+                            failure_reason: "customer_absent" | "customer_refused" | "wrong_address" | "payment_refused" | "other" | null;
+                            requires_cooler_bag: boolean;
+                            cooler_bag_confirmed: boolean | null;
+                            packages: {
+                                /** Format: uuid */
+                                id: string;
+                                label_code: string;
+                                /** @enum {string} */
+                                package_type: "bag" | "cooler" | "tote" | "envelope";
+                                position: number;
+                            }[];
+                            package_count: number;
+                            picked_up_at: string | null;
+                            completed_at: string | null;
+                            returned_at: string | null;
+                            returned_to_pharmacy_at: string | null;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/driver/orders/{id}/handover": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Confirm the pharmacy took one undelivered package back */
         post: {
             parameters: {
                 query?: never;
@@ -1579,29 +2473,218 @@ export interface paths {
                             /** @enum {string} */
                             status: "in_pharmacy" | "picked_up";
                             sequence_number: number | null;
+                            is_priority: boolean;
                             delivery_date: string;
                             /** @enum {string} */
                             delivery_window: "AM" | "PM";
+                            requested_delivery_time: string | null;
                             patient_name: string;
                             address: string;
                             phone_number: string;
+                            authorized_recipient: string | null;
                             amount_due: number | null;
                             /** @enum {string} */
                             payment_status: "paid" | "unpaid";
                             payment_collected: boolean;
                             requires_cooler_bag: boolean;
+                            packages: {
+                                /** Format: uuid */
+                                id: string;
+                                label_code: string;
+                                /** @enum {string} */
+                                package_type: "bag" | "cooler" | "tote" | "envelope";
+                                position: number;
+                            }[];
+                            package_count: number;
                             picked_up_at: string | null;
                         } | {
                             /** Format: uuid */
                             id: string;
                             /** @enum {string} */
-                            status: "completed" | "returned" | "cancelled";
+                            status: "completed" | "returned" | "returned_to_pharmacy" | "cancelled";
                             delivery_date: string;
+                            /** @enum {string|null} */
+                            failure_reason: "customer_absent" | "customer_refused" | "wrong_address" | "payment_refused" | "other" | null;
+                            requires_cooler_bag: boolean;
+                            cooler_bag_confirmed: boolean | null;
+                            packages: {
+                                /** Format: uuid */
+                                id: string;
+                                label_code: string;
+                                /** @enum {string} */
+                                package_type: "bag" | "cooler" | "tote" | "envelope";
+                                position: number;
+                            }[];
+                            package_count: number;
                             picked_up_at: string | null;
                             completed_at: string | null;
                             returned_at: string | null;
+                            returned_to_pharmacy_at: string | null;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/driver/returns/handover": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Confirm the pharmacy took the undelivered packages back */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        order_ids: string[];
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            handed_over: {
+                                /** Format: uuid */
+                                id: string;
+                                /** @enum {string} */
+                                status: "completed" | "returned" | "returned_to_pharmacy" | "cancelled";
+                                delivery_date: string;
+                                /** @enum {string|null} */
+                                failure_reason: "customer_absent" | "customer_refused" | "wrong_address" | "payment_refused" | "other" | null;
+                                requires_cooler_bag: boolean;
+                                cooler_bag_confirmed: boolean | null;
+                                packages: {
+                                    /** Format: uuid */
+                                    id: string;
+                                    label_code: string;
+                                    /** @enum {string} */
+                                    package_type: "bag" | "cooler" | "tote" | "envelope";
+                                    position: number;
+                                }[];
+                                package_count: number;
+                                picked_up_at: string | null;
+                                completed_at: string | null;
+                                returned_at: string | null;
+                                returned_to_pharmacy_at: string | null;
+                            }[];
+                            count: number;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/driver/orders/{id}/priority": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Flag a stop the pharmacy called urgent at pickup */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        is_priority: boolean;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** Format: uuid */
+                            id: string;
+                            /** @enum {string} */
+                            status: "in_pharmacy" | "picked_up";
+                            sequence_number: number | null;
+                            is_priority: boolean;
+                            delivery_date: string;
+                            /** @enum {string} */
+                            delivery_window: "AM" | "PM";
+                            requested_delivery_time: string | null;
+                            patient_name: string;
+                            address: string;
+                            phone_number: string;
+                            authorized_recipient: string | null;
+                            amount_due: number | null;
+                            /** @enum {string} */
+                            payment_status: "paid" | "unpaid";
+                            payment_collected: boolean;
+                            requires_cooler_bag: boolean;
+                            packages: {
+                                /** Format: uuid */
+                                id: string;
+                                label_code: string;
+                                /** @enum {string} */
+                                package_type: "bag" | "cooler" | "tote" | "envelope";
+                                position: number;
+                            }[];
+                            package_count: number;
+                            picked_up_at: string | null;
+                        } | {
+                            /** Format: uuid */
+                            id: string;
+                            /** @enum {string} */
+                            status: "completed" | "returned" | "returned_to_pharmacy" | "cancelled";
+                            delivery_date: string;
+                            /** @enum {string|null} */
+                            failure_reason: "customer_absent" | "customer_refused" | "wrong_address" | "payment_refused" | "other" | null;
                             requires_cooler_bag: boolean;
                             cooler_bag_confirmed: boolean | null;
+                            packages: {
+                                /** Format: uuid */
+                                id: string;
+                                label_code: string;
+                                /** @enum {string} */
+                                package_type: "bag" | "cooler" | "tote" | "envelope";
+                                position: number;
+                            }[];
+                            package_count: number;
+                            picked_up_at: string | null;
+                            completed_at: string | null;
+                            returned_at: string | null;
+                            returned_to_pharmacy_at: string | null;
                         };
                     };
                 };
@@ -1655,29 +2738,53 @@ export interface paths {
                                 /** @enum {string} */
                                 status: "in_pharmacy" | "picked_up";
                                 sequence_number: number | null;
+                                is_priority: boolean;
                                 delivery_date: string;
                                 /** @enum {string} */
                                 delivery_window: "AM" | "PM";
+                                requested_delivery_time: string | null;
                                 patient_name: string;
                                 address: string;
                                 phone_number: string;
+                                authorized_recipient: string | null;
                                 amount_due: number | null;
                                 /** @enum {string} */
                                 payment_status: "paid" | "unpaid";
                                 payment_collected: boolean;
                                 requires_cooler_bag: boolean;
+                                packages: {
+                                    /** Format: uuid */
+                                    id: string;
+                                    label_code: string;
+                                    /** @enum {string} */
+                                    package_type: "bag" | "cooler" | "tote" | "envelope";
+                                    position: number;
+                                }[];
+                                package_count: number;
                                 picked_up_at: string | null;
                             } | {
                                 /** Format: uuid */
                                 id: string;
                                 /** @enum {string} */
-                                status: "completed" | "returned" | "cancelled";
+                                status: "completed" | "returned" | "returned_to_pharmacy" | "cancelled";
                                 delivery_date: string;
+                                /** @enum {string|null} */
+                                failure_reason: "customer_absent" | "customer_refused" | "wrong_address" | "payment_refused" | "other" | null;
+                                requires_cooler_bag: boolean;
+                                cooler_bag_confirmed: boolean | null;
+                                packages: {
+                                    /** Format: uuid */
+                                    id: string;
+                                    label_code: string;
+                                    /** @enum {string} */
+                                    package_type: "bag" | "cooler" | "tote" | "envelope";
+                                    position: number;
+                                }[];
+                                package_count: number;
                                 picked_up_at: string | null;
                                 completed_at: string | null;
                                 returned_at: string | null;
-                                requires_cooler_bag: boolean;
-                                cooler_bag_confirmed: boolean | null;
+                                returned_to_pharmacy_at: string | null;
                             };
                             amount_due: number | null;
                             amount_collected: number;
@@ -1732,29 +2839,149 @@ export interface paths {
                             /** @enum {string} */
                             status: "in_pharmacy" | "picked_up";
                             sequence_number: number | null;
+                            is_priority: boolean;
                             delivery_date: string;
                             /** @enum {string} */
                             delivery_window: "AM" | "PM";
+                            requested_delivery_time: string | null;
                             patient_name: string;
                             address: string;
                             phone_number: string;
+                            authorized_recipient: string | null;
                             amount_due: number | null;
                             /** @enum {string} */
                             payment_status: "paid" | "unpaid";
                             payment_collected: boolean;
                             requires_cooler_bag: boolean;
+                            packages: {
+                                /** Format: uuid */
+                                id: string;
+                                label_code: string;
+                                /** @enum {string} */
+                                package_type: "bag" | "cooler" | "tote" | "envelope";
+                                position: number;
+                            }[];
+                            package_count: number;
                             picked_up_at: string | null;
                         } | {
                             /** Format: uuid */
                             id: string;
                             /** @enum {string} */
-                            status: "completed" | "returned" | "cancelled";
+                            status: "completed" | "returned" | "returned_to_pharmacy" | "cancelled";
                             delivery_date: string;
+                            /** @enum {string|null} */
+                            failure_reason: "customer_absent" | "customer_refused" | "wrong_address" | "payment_refused" | "other" | null;
+                            requires_cooler_bag: boolean;
+                            cooler_bag_confirmed: boolean | null;
+                            packages: {
+                                /** Format: uuid */
+                                id: string;
+                                label_code: string;
+                                /** @enum {string} */
+                                package_type: "bag" | "cooler" | "tote" | "envelope";
+                                position: number;
+                            }[];
+                            package_count: number;
                             picked_up_at: string | null;
                             completed_at: string | null;
                             returned_at: string | null;
-                            requires_cooler_bag: boolean;
-                            cooler_bag_confirmed: boolean | null;
+                            returned_to_pharmacy_at: string | null;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/driver/notifications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Orders assigned, readied, pulled, or cancelled for this driver */
+        get: {
+            parameters: {
+                query?: {
+                    unread?: "true" | "false";
+                    limit?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data: {
+                                /** Format: uuid */
+                                id: string;
+                                /** @enum {string} */
+                                type: "order_assigned" | "order_ready" | "order_unassigned" | "order_cancelled";
+                                /** Format: uuid */
+                                order_id: string | null;
+                                delivery_date: string | null;
+                                created_at: string;
+                                read_at: string | null;
+                            }[];
+                            unread_count: number;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/driver/notifications/read": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Mark notifications read */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        ids?: string[];
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            updated: number;
                         };
                     };
                 };

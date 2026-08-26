@@ -1,10 +1,11 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { ActionPair, PrimaryAction, SecondaryAction } from '@/components/driver/actions';
 import { Chip, WindowChip } from '@/components/driver/badges';
 import { GlassPanel } from '@/components/glass/glass-panel';
+import type { DriverTransition } from '@/api/transitions';
 import type { ActiveStop } from '@/api/types';
 import { useTheme } from '@/design/theme';
 import { Radius, Space, Type } from '@/design/tokens';
@@ -14,22 +15,25 @@ import { money } from '@/lib/format';
 /**
  * The detail sheet — everything about one stop, and the action for its state.
  *
- * `transitions` comes from the server, not from a status switch here: the
- * platform owns the state machine and the app renders what it is told it may
- * do (PRD §5.2). A client-side re-implementation would drift the moment the
- * server adds a rule.
+ * `transitions` is a prop rather than a status switch inside this component,
+ * and the source of that prop is `src/api/transitions.ts`. It used to say the
+ * array came from the server; that was never true of a driver payload and is
+ * now demonstrably not — `available_transitions` exists only on the admin
+ * `orderResponse`. The app mirrors `stateMachine.ts` in that one file, and the
+ * live-API suite walks a real order through every state to keep the mirror
+ * honest. This component stays dumb either way.
  *
  * The reference mockup opens with a map preview; there is none here because the
  * API exposes no coordinates for a stop. The address is the hero instead, set
  * large enough to read from a dashboard mount.
  */
 
-export type StopTransition = 'pickup' | 'complete' | 'return';
+export type StopTransition = DriverTransition;
 
 type StopSheetProps = {
   stop: ActiveStop;
   locale: 'fr' | 'en';
-  transitions: StopTransition[];
+  transitions: readonly StopTransition[];
   labels: {
     status: string;
     client: string;
@@ -42,8 +46,10 @@ type StopSheetProps = {
     pickup: string;
     delivered: string;
     returnOrder: string;
+    handover: string;
   };
   busy?: StopTransition | null;
+  onDismiss?: () => void;
   onCallClient?: () => void;
   onCallPharmacy?: () => void;
   onTransition?: (transition: StopTransition) => void;
@@ -55,6 +61,7 @@ export function StopSheet({
   transitions,
   labels,
   busy,
+  onDismiss,
   onCallClient,
   onCallPharmacy,
   onTransition,
@@ -64,7 +71,7 @@ export function StopSheet({
   const window = DELIVERY_WINDOWS[stop.delivery_window];
   const owes = stop.amount_due !== null && stop.amount_due > 0 && !stop.payment_collected;
 
-  return (
+  const sheet = (
     <GlassPanel level="raised" radius={Radius.sheet} androidBlur contentStyle={styles.sheet}>
       <View style={[styles.grabber, { backgroundColor: theme.tint.neutral.border }]} />
 
@@ -168,6 +175,16 @@ export function StopSheet({
             icon={<Ionicons name="checkmark-circle" size={20} color={theme.palette.onAccent} />}
           />
         ) : null}
+        {transitions.includes('handover') ? (
+          <PrimaryAction
+            label={labels.handover}
+            loading={busy === 'handover'}
+            onPress={() => onTransition?.('handover')}
+            icon={
+              <Ionicons name="checkmark-done" size={20} color={theme.palette.onAccent} />
+            }
+          />
+        ) : null}
         {transitions.includes('return') ? (
           <SecondaryAction
             tone="danger"
@@ -179,9 +196,31 @@ export function StopSheet({
       </View>
     </GlassPanel>
   );
+
+  /*
+    Rendered bare when no dismiss handler is given, so the design gallery and
+    the component tests can mount it directly without a modal host.
+  */
+  if (!onDismiss) return sheet;
+
+  return (
+    <Modal visible animationType="slide" transparent onRequestClose={onDismiss}>
+      <Pressable style={styles.backdrop} accessibilityLabel="" onPress={onDismiss} />
+      <View style={styles.host}>{sheet}</View>
+    </Modal>
+  );
 }
 
 const styles = StyleSheet.create({
+  backdrop: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+  },
+  host: { flex: 1, justifyContent: 'flex-end' },
   sheet: {
     paddingTop: Space.md,
     paddingBottom: Space.xl,

@@ -13,8 +13,15 @@
  */
 module.exports = {
   testEnvironment: 'node',
+  /*
+    One suite at a time. Two live suites in parallel put ~100 requests a minute
+    through the same dev server from one IP, which is exactly the per-IP budget
+    the server enforces — the gate then fails on RATE_LIMITED rather than on
+    anything it set out to prove.
+  */
+  maxWorkers: 1,
   rootDir: __dirname,
-  testMatch: ['<rootDir>/src/api/__tests__/live-server.test.ts'],
+  testMatch: ['<rootDir>/src/api/__tests__/live-server*.test.ts'],
   transform: {
     '^.+\.[jt]sx?$': [
       'babel-jest',

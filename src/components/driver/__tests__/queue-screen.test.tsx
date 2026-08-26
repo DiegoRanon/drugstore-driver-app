@@ -20,6 +20,9 @@ let mockFocused = true;
 // component under test uses from it.
 jest.mock('expo-router', () => ({
   useIsFocused: () => mockFocused,
+  // The header's notification bell pushes this route; nothing here asserts on
+  // navigation, it just must not be undefined.
+  router: { push: jest.fn(), back: jest.fn() },
 }));
 
 /** In-memory Keychain — the header reads the session for a fallback name. */
@@ -47,19 +50,18 @@ import { QueueScreen } from '@/components/driver/queue-screen';
 import { AppThemeProvider } from '@/design/theme-provider';
 import { LocaleProvider } from '@/locale/locale-provider';
 import { createQueryClient } from '@/queue/query-client';
-import type { QueueResponse } from '@/api/types';
+import { queue } from '@/test-support/queue-fixtures';
 
 const METRICS = {
   frame: { x: 0, y: 0, width: 390, height: 844 },
   insets: { top: 47, left: 0, right: 0, bottom: 34 },
 };
 
-const QUEUE = {
-  date: '2026-08-22',
-  pharmacy: { name: 'Pharmacie Saint-Laurent', phone: null },
-  stops: [],
-  closed: [],
-} as QueueResponse;
+// Built by the shared fixture, with no `as` cast. The cast this used to carry
+// still *compiled* after the server grew `to_return` and `totals`, and blew up
+// at runtime inside `splitQueue` instead — which is the whole reason the
+// builders exist.
+const QUEUE = queue();
 
 /** Just enough of a query result for the frame to render. */
 function queryStub(overrides: Record<string, unknown> = {}) {
@@ -131,6 +133,27 @@ describe('the focused tab', () => {
     );
 
     expect(screen.getByText('Rien à ramasser')).toBeTruthy();
+  });
+
+  it("renders a page's own banner alongside the shared ones", () => {
+    mount(
+      <QueueScreen
+        query={queryStub({ data: { ...QUEUE, degraded: true } })}
+        items={[{ id: '1', name: 'Evelyn Harper' }]}
+        keyExtractor={(item) => item.id}
+        renderItem={(item) => <Text>{item.name}</Text>}
+        emptyIcon="file-tray-outline"
+        emptyTitle="Rien à ramasser"
+        emptyBody="Aucun colis ne vous attend au comptoir."
+        banner={<Text>2 nouvelles commandes vous ont été assignées</Text>}
+      />,
+    );
+
+    // Both notices and the list: a new assignment does not replace a degraded
+    // route, and neither replaces the day's work.
+    expect(screen.getByText('Route non optimisée — ordre précédent conservé')).toBeTruthy();
+    expect(screen.getByText('2 nouvelles commandes vous ont été assignées')).toBeTruthy();
+    expect(screen.getByText('Evelyn Harper')).toBeTruthy();
   });
 
   it('renders the degraded banner as a note on a working screen, not an error', () => {

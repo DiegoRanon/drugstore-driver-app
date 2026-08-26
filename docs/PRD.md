@@ -69,7 +69,7 @@ The bet: a Mobilus driver performs sign-or-photograph at every door; ours taps o
 | Navigation         | Expo Router                              | File-based; typed routes                                                                                                       |
 | API types          | `openapi-typescript`                     | Generated from the server's `openapi.json` — never hand-written (same rule as the dashboard)                                   |
 | Server state       | TanStack Query                           | **In-memory cache only** for anything carrying PII — no disk persistence (§8.2)                                                |
-| Mutation outbox    | SQLite (`expo-sqlite`), encrypted        | Queued writes survive app death; replayed in order on reconnect (§6)                                                           |
+| Mutation outbox    | **Deferred** — see §6.1                  | Writes go online-first with an `Idempotency-Key` and snapshot rollback; SQLite queueing is a later feature (§6.2)               |
 | Token storage      | `expo-secure-store`                      | iOS Keychain / Android Keystore, hardware-backed. Never AsyncStorage                                                           |
 | Maps               | `@rnmapbox/maps`                         | Rendering only, with a short-lived scoped token from the server (server PRD §5.4). The Mapbox secret never ships in the binary |
 | Navigation handoff | Native intents                           | Turn-by-turn is delegated to Google Maps / Apple Maps / Waze (§5.4)                                                            |
@@ -107,7 +107,7 @@ All API calls go through one client that owns refresh. When the access token is 
 
 ### 4.5 Deactivation
 
-When the pharmacy deactivates a driver, the server revokes their sessions. The next API call returns `401`; the app treats it as §4.4 terminal — wipe and login screen. There is no offline grace period for a revoked driver: cached PII is purged even though the outbox (which contains no patient data, §6.3) may still drain later.
+When the pharmacy deactivates a driver, the server revokes their sessions. The next API call returns `401`; the app treats it as §4.4 terminal — wipe and login screen. There is no offline grace period for a revoked driver: cached PII is purged immediately. (Once the outbox of §6.2 exists, it contains no patient data — §6.4 — and may drain later.)
 
 ---
 
@@ -115,21 +115,24 @@ When the pharmacy deactivates a driver, the server revokes their sessions. The n
 
 ### 5.1 The queue — home screen
 
-Data source: `GET /v1/driver/queue?date=` — returns `stops` (active orders in `sequence_number` order), `closed` (today's finished deliveries, PII-stripped), and `pharmacy` (name and phone for the dialer).
+Data source: `GET /v1/driver/queue?date=`. The server buckets the day for us — `stops` (active orders, priority first then `sequence_number`), `to_return` (failed deliveries still in the van), and `closed` (today's finished orders) — plus `pharmacy` (name, phone, and `return_deadline`), `totals`, and `unread_notifications`.
 
-Three tabs, mirroring the Mobilus model but mapped to our state machine:
+Four tabs, mapped to the state machine:
 
-| Tab            | Contents                                          | Server status           |
-| -------------- | ------------------------------------------------- | ----------------------- |
-| **Ready**      | Assigned, still at the pharmacy                   | `in_pharmacy`           |
-| **On the way** | In the driver's vehicle                           | `picked_up`             |
-| **Done**       | Today's closed deliveries + packages to hand back | `completed`, `returned` |
+| Tab              | Contents                              | Server status                                          |
+| ---------------- | ------------------------------------- | ------------------------------------------------------ |
+| **Ready**        | Assigned, still at the pharmacy       | `in_pharmacy`                                          |
+| **On the way**   | In the driver's vehicle               | `picked_up`                                            |
+| **À rapporter**  | Failed, in the van, owed to the counter | `returned`                                           |
+| **Done**         | Nothing else can happen               | `completed`, `returned_to_pharmacy`, `cancelled`       |
 
 Each tab shows its count in the tab bar, exactly as Mobilus does — the driver's first glance answers "how much day is left."
 
-**No separate Returning tab.** In our model a return is instantaneous and terminal (`picked_up → returned`, server PRD §5.3); there is no tracked return leg. Instead, the **Done** tab pins a "Return to pharmacy" section listing today's returned orders by order reference — no patient data, which is all the server will give us for terminal orders anyway (§8.1) — so the driver has a physical checklist of packages to hand back at the counter.
+**The return leg is a tab, and it is required.** An earlier draft of this section said a return was instantaneous and terminal, with no tracked return leg, and folded the hand-back list into Done. The server's lifecycle is `picked_up → returned → returned_to_pharmacy`: `returned` means the package is in the driver's van and the pharmacy is still owed it. It is not terminal, not active, and — because the delivery attempt is over — not PII-visible either. A tab rather than a section of Done, because it is a physical checklist worked against `pharmacy.return_deadline` at the counter, and burying it under a scroll of completed deliveries is the exact failure that deadline exists to prevent.
 
-Refresh model: pull-to-refresh plus an automatic re-fetch every 30 seconds while the app is foregrounded. There is no push channel yet (§9.2), and a new assignment must appear without the driver thinking about it.
+Refresh model: pull-to-refresh plus an automatic re-fetch every 30 seconds while the app is foregrounded. There is no push channel yet (§9.2), and a new assignment must appear without the driver thinking about it. The poll suspends while a write is in flight, so a refetch cannot overwrite an optimistic update with server state that predates it.
+
+`GET /v1/driver/queue` also accepts `updated_since` and answers `has_new`. The app does not use it: `src/queue/shift-alerts.ts` diffs stop ids across polls and produces a *count* of what arrived, which is what the banners render and strictly more than a boolean.
 
 ### 5.2 The order card
 
@@ -142,24 +145,48 @@ Modeled directly on the Mobilus card, which is well-solved glanceable design:
 5. **Cooler badge** — when `requires_cooler_bag`, so the driver grabs the bag at pickup, not remembers it at the door
 6. **Sequence position and ETA** — once a route is optimized; position is `sequence_number`, never a client-side sort
 7. **Delay** — elapsed time since the order entered its current status, matching Mobilus's delay counter
-8. **Distance + bearing** — straight-line distance from current position ("10.2 km ENE"), computed on-device from coordinates; this is display math, not routing
+8. **Priority flag** — when `is_priority`. The server sorts priority stops to the front of `stops` regardless of route position, so the badge is what explains an order the driver would otherwise read as a bug
+9. **Requested time** — `requested_delivery_time` beside the window chip when the pharmacy set one, never instead of it: a bare "14:30" has lost the half-day it belongs to
+10. **Package count** — `package_count` when more than one, so the driver knows how many bags to carry to the door
 
-Tapping a card opens a detail sheet: full address, phone (call button), amount due, window, and the action button for the order's current state. Actions are rendered from the server's transition rules, not a client-side re-implementation of the state machine.
+Straight-line distance and bearing are still not buildable: the API exposes no coordinates for a stop.
+
+Tapping a card opens a detail sheet: full address, phone (call button), amount due, window, and the action button for the order's current state.
+
+**Actions come from `src/api/transitions.ts`, which mirrors the server's `stateMachine.ts`.** They are not derived by a switch inside a component, and they are not read off the payload: `available_transitions` exists on the admin `orderResponse` and on no driver response, so there is nothing to render from. Owning the mirror means owning the drift risk, and `src/api/__tests__/live-server-transitions.test.ts` is the answer to it — it walks two real orders through every state and asserts both directions at each step.
 
 Sort and filter (toolbar, as in Mobilus): default order is route sequence; alternatives are distance and name. Search over name and address. Filter to `$`-flagged and cooler-flagged orders.
 
 ### 5.3 Pickup — taking charge
 
-From the **Ready** tab, the driver multi-selects orders (Mobilus-style checkbox mode, plus a select-all) and confirms once. The app fires `POST /v1/driver/orders/:id/pickup` per order — the server has no batch endpoint (§9.3) — with one progress indicator, not ten. Each success moves the card to **On the way**; a failure (e.g. the admin reassigned the order seconds ago → `409`) leaves that card in place with an inline reason and never blocks the rest of the batch.
+From the **Ready** tab, the driver multi-selects orders (Mobilus-style checkbox mode, plus a select-all) and confirms once. The app fires `POST /v1/driver/orders/:id/pickup` per order — the server has no batch endpoint (§9.3) — with one progress indicator, not ten. Each success moves the card to **On the way**; a failure (e.g. the admin reassigned the order seconds ago → `409`) leaves that card in place with an inline reason and never blocks the rest of the batch (`Promise.allSettled`, never `Promise.all`).
 
-After a successful pickup batch, the app immediately requests route optimization (§5.4) so the driver walks out with an ordered list.
+**The label check.** Confirming opens a sheet listing every selected order's `packages[]` as tappable label-code chips, which the driver ticks off with the employee — the workflow's *"en vérifiant que les étiquettes correspondent aux commandes qu'il a sur son application en collaborant avec l'employé."* The ticked count is sent as `confirmed_package_count`, the digital trace of that check.
+
+A count that disagrees with the order is **accepted and logged by the server, never refused**, so the confirm button stays enabled at any count including zero. The bags on the counter are the truth, and a driver standing there mid-conversation must not be blocked by a validation error. The mismatch renders as a caution line, not a gate.
+
+**Priority at the counter.** "Si une commande doit être livrée prioritairement, l'employé le dit au livreur maintenant." A flag control on the Ready card calls `POST /v1/driver/orders/:id/priority`; the stop re-sorts to the front immediately, the way the server will on the next poll.
+
+**The POS terminal.** When `totals.requires_payment_terminal`, a banner on Ready names how many stops owe money and how much, from `payment_stop_count` and `amount_due_total` — while the driver is still in the building.
+
+After a successful pickup batch the driver can order the run by hand (§5.4).
 
 ### 5.4 Route optimization, map, and navigation (MVP §5)
 
-`POST /v1/driver/queue/optimize` with the current device location. The server writes `sequence_number` 1..N and returns the reordered queue.
+**The driver orders the run, and the optimizer suggests.** `domain_workflow.md` §En route: *"Le livreur détermine manuellement l'itinéraire le plus rapide … en tenant compte de l'estimation de distance faite par l'application et des commandes prioritaires."* A reorder sheet, reached from On the way, drives `POST /v1/driver/queue/sequence`. Three things about that endpoint shape it:
+
+1. **It edits the whole day, not the van.** The server clears `sequence_number` on any active order missing from `ordered_order_ids`, so the sheet lists Ready *and* On the way together even though it opens from On the way. A partial list would silently unsequence everything still at the counter — asserted against the live server in `live-server-write-verbs.test.ts`.
+2. **Priority beats position.** The server sorts `is_priority DESC` ahead of `sequence_number`, so a stop dragged above a priority one comes back below it. The same comparator runs locally on every change, so the snap-back happens under the driver's finger rather than a second later on screen.
+3. **The response is the whole queue**, written straight into the cache. No invalidate, no second round trip.
+
+Drag to reorder, with up/down chevrons beside the grip — a screen reader cannot drag, and one-handed operation is a §7 requirement. Built on the `react-native-gesture-handler` and `react-native-reanimated` already in Expo Go's prebuilt set; no new native dependency.
+
+Per-stop distances render from `estimates` when a prior optimize supplied them, and nothing at all when it did not. Never invent a distance from an absence.
+
+`POST /v1/driver/queue/optimize` stays as the secondary control ("Proposer un ordre"), with the current device location. The server writes `sequence_number` 1..N and returns the reordered queue.
 
 - **Degraded mode is a first-class state.** The server never fails an optimize call over a provider outage — it returns the previous sequence with `degraded: true` (verified server behaviour). The app shows a quiet banner: "Route not optimized — using previous order", and everything else works. A routing outage must never stop a delivery run.
-- Re-optimize triggers: after a pickup batch, after a return (the driver now heads back to the pharmacy), and manually from the toolbar. Automatic recalculation on every completion is a server Phase 5 item; until then the manual control is prominent.
+- `degraded` means one thing only: the route is the driver's previous one because the optimizer could not answer. It is **not** set when `estimates` are missing — an adapter that can order but not measure has given a perfectly good route, and missing estimates say so by `estimates` being absent.
 - **Map view** (toolbar toggle, as in Mobilus): all active stops pinned on Mapbox, numbered by sequence; distinct pin styles for ready vs on-the-way; `$` marker on collection stops; a legend, since Mobilus taught drivers to expect one. Tapping a pin opens the same detail sheet as the list.
 - **Turn-by-turn is not our problem.** "Navigate" on any stop opens the address in the driver's preferred navigation app (Google Maps / Apple Maps / Waze) via native intent. Building in-app guidance would be years of work to be worse than what the driver already trusts.
 
@@ -172,15 +199,19 @@ Call buttons on the detail sheet for the client (`phone_number` from the queue p
 On the active stop's detail sheet: a single, full-width, thumb-reachable **"Delivered"** button → `POST /v1/driver/orders/:id/complete`.
 
 - No signature. No photo. No confirmation dialog for a paid order — the tap **is** the confirmation, and undo is an admin correction, deliberately (server PRD §5.3: terminal states are immutable to drivers).
-- **The one guard:** if `amount_due` is set and no payment has been recorded, the Delivered tap first presents the payment sheet (§5.7). Completing an unpaid `$` order without collecting must be a conscious choice ("Complete without payment"), because it surfaces on the pharmacy's exceptions report.
-- The UI transitions optimistically and the write goes through the outbox (§6). The driver never waits on a spinner at the door.
-- On success, if `requires_cooler_bag`, the QC prompt appears (§5.8). Then the card moves to **Done** and its PII leaves the device (§8.1).
+- **The one guard:** if `amount_due` is set and no payment has been recorded, the Delivered tap first presents the payment sheet (§5.7). The payment rides on the completion — `POST .../complete` takes an optional `{ payment }` and writes the transition and the collection in **one transaction**. Never `/payment` then `/complete`: that is two writes and a window where one landed and the other did not.
+- **The client cannot pay.** The workflow is explicit that this is not the driver's decision: *"le livreur doit appeler la pharmacie et demander quoi faire (rapporter la commande ou donner gratuitement)."* So the sheet leads with a full-width **"Appeler la pharmacie"**, and the options below it *record what the driver was told* — `payment_exception: waived_by_pharmacy` or `deferred_to_pharmacy`, with an optional note — rather than offering a choice. Both end up on the pharmacy's exceptions report under this driver's name, which is why the wording matters. The third way out is bringing it back, which routes to the return sheet with `payment_refused` preselected.
+- `payment` and `payment_exception` together is a `400`. The client models the outcome as a discriminated union (`{ kind: 'paid' } | { kind: 'exception' } | { kind: 'none' }`) so sending both is unrepresentable rather than validated.
+- The UI transitions optimistically and rolls back from a snapshot on failure (§6). The driver never waits on a spinner at the door.
+- On success, if `requires_cooler_bag`, the QC prompt appears (§5.9). Then the card moves to **Done** and its PII leaves the device (§8.1).
 
 ### 5.7 Payment collection (MVP §5)
 
 No digital payments. The driver carries a physical POS terminal; the app records the outcome.
 
-The payment sheet shows `amount_due` large, two method buttons (**Cash** / **Card**), and an amount field **pre-filled with `amount_due`** — the common case is one tap on the method. Submits `POST /v1/driver/orders/:id/payment` with `{ payment_method, amount_collected }`.
+The payment sheet shows `amount_due` large, two method buttons (**Cash** / **Card**), and an amount field **pre-filled with `amount_due`** — the common case is one tap on the method. It submits through `POST .../complete` (§5.6), in one transaction with the delivery.
+
+**`POST /v1/driver/orders/:id/payment` keeps exactly one job**: the terminal that only went through *after* the delivery was already marked complete. It is surfaced as "Enregistrer le paiement" on a completed card in Done, and nowhere else. The server accepts it on `picked_up` and `completed` only.
 
 - The server responds with `matches_amount_due`. A mismatch is not an error — partial payments happen at the door — but the app shows "collected $15.00 of $42.50" so a typo is caught while the driver is still standing there.
 - The server refuses payment against a returned order (nothing was collected from a patient who never answered); the app never offers the sheet on a return.
@@ -188,25 +219,51 @@ The payment sheet shows `amount_due` large, two method buttons (**Cash** / **Car
 
 ### 5.8 Return Order (MVP §5)
 
-Patient unavailable → one **"Return Order"** button on the detail sheet → `POST /v1/driver/orders/:id/return`. One confirmation ("Package will be returned to the pharmacy") because it is terminal and, unlike Delivered, it is the rare path — a mis-tap here is likelier than at a door where the driver just handed over a package.
+Patient unavailable → one **"Retourner la commande"** button on the detail sheet → a reason sheet → `POST /v1/driver/orders/:id/return`.
 
+- **`reason` is required.** A bodyless call is `400 VALIDATION_FAILED`; there is no path that skips it. Five options, closed set: `customer_absent`, `customer_refused`, `wrong_address`, `payment_refused`, `other`.
+- **`note` is optional and the driver never sees it again.** It writes to `orders.failure_note`, which is admin-only, redacted from logs, and stripped from every driver response. Capped at 500 characters with a live counter.
 - Only reachable from `picked_up`; the server enforces it, so the button only exists on **On the way** orders.
-- The order joins the "Return to pharmacy" checklist on the Done tab (§5.1) and a re-optimize is offered, since the route now ends at the pharmacy.
+- **A return is not terminal.** The order moves to `returned` and lands on the **À rapporter** tab (§5.13), not Done. The copy on the confirm must not say "terminé" — the driver still owes the pharmacy a handover.
 - A second attempt is a **new order** created by the admin — the app has no "retry delivery" affordance.
 
 ### 5.9 Cooler-bag QC (MVP §5)
 
-Immediately after completing or returning an order with `requires_cooler_bag`, a prompt: "Did you retrieve the cooler bag?" → **Yes** / **No** via `POST /v1/driver/orders/:id/cooler-check`.
+Immediately after completing or returning an order with `requires_cooler_bag`, a prompt: "Avez-vous récupéré le sac réfrigérant ?" → **Yes** / **No** via `POST /v1/driver/orders/:id/cooler-check`.
+
+**This is the one call in the app that cannot be optimistic.** `cooler-check` is only valid once the order is terminal, so firing it against an optimistic `completed` the server has not written yet answers `409 ORDER_INVALID_TRANSITION`. The prompt waits for the transition to resolve.
 
 Three states matter to the pharmacy's exceptions report, so the app must preserve all three: confirmed (`true`), answered no (`false`), and **dismissed** (`NULL` — the endpoint is simply never called). The prompt is dismissible and never blocks the next delivery: it is a QC record, not a gate. Unanswered checks remain visible as a badge on the Done tab entry so the driver can answer later, from the van, before end of day.
 
 ### 5.10 Done tab — today's history
 
-The `closed` list from the queue payload: status, timestamps, payment recorded, cooler-check state, order reference. **No patient name, address, or phone** — the server strips them from terminal orders and the app renders what remains (§8.1). Yesterday is not reachable; the app is a tool for today's run, and history lives on the pharmacy's dashboard.
+The `closed` list from the queue payload: status, timestamps, cooler-check state, order reference. **No patient name, address, or phone** — the server strips them the moment the delivery attempt ends and the app renders what remains (§8.1). Yesterday is not reachable; the app is a tool for today's run, and history lives on the pharmacy's dashboard.
+
+A `returned` order is **not** here. It is closed in the privacy sense and open in every other, so it belongs on **À rapporter** (§5.13). The split is enforced by type: `splitQueue` narrows this list to `TerminalStop`, and `ClosedOrderCard` will not accept anything else.
 
 ### 5.11 Bilingual FR/EN
 
-Quebec drivers. French default, complete and idiomatic — window labels ("Livraison AM"), actions ("Livré", "Retourner la commande"), and every error string. Initial locale from the organization's `locale` via `/v1/auth/me`, overridable in settings, persisted on-device. French strings run 15–30% longer than English; the one-tap buttons must tolerate it without truncation.
+Quebec drivers. French default, complete and idiomatic — window labels ("Livraison AM"), actions ("Livré", "Retourner la commande"), and every error string. Initial locale from the organization's `locale` via `/v1/auth/me`, overridable in settings, persisted on-device. French strings run 15–30% longer than English; the one-tap buttons must tolerate it without truncation. Four tabs squeeze the bar: labels drop to 11pt, and "À rapporter" is the longest in either language.
+
+### 5.12 Notifications
+
+*"Le livreur reçoit une notification et la commande apparaît dans la section en pharmacie."* There is no push channel (§9.2), so this is an in-app feed: `GET /v1/driver/notifications`, with four types — `order_assigned`, `order_ready`, `order_unassigned`, `order_cancelled`.
+
+- **The badge is free.** `unread_notifications` rides on the queue payload the app already fetches every 30 seconds, so the bell in the header costs no extra request. The feed itself is fetched only when the screen opens.
+- **A pushed route, not a fifth tab.** It is a destination the driver visits and leaves, and it should cover the tab bar. Pushing also leaves the tab group mounted, which keeps the queue's only long-lived cache observer alive (§6.1).
+- **Marking read is explicit** — a tap on a row, or "tout marquer comme lu" — never automatic on mount. A driver who opens the feed at a red light and locks the phone would otherwise lose the badge and the only signal that anything happened. Marking read invalidates the queue too, so the bell follows.
+- **Counts and order references only, never a name.** A feed row sits on screen while the phone is on a dashboard mount, which is where PII is most visible and least controlled (§8.1). The server helps: a notification carries a type, an order id, and two timestamps.
+
+### 5.13 Return to pharmacy
+
+*"Une fois les commandes retournées, le livreur peut confirmer sur l'application que la pharmacie les a bien récupérées."*
+
+The **À rapporter** tab renders `to_return`. Each card shows the order reference, the `failure_reason`, when the attempt failed, and — the point of the screen — the **label codes**, which are exactly what survives the PII strip so the driver can match parcels against the employee's list.
+
+- **The deadline is on screen.** `pharmacy.return_deadline` renders as "À rapporter avant 18:00", turning danger-coloured and changing wording past the hour. Nothing on the server enforces it; that is why it has to be visible.
+- **The whole stack at once is the default.** `POST /v1/driver/returns/handover` runs the batch in one transaction, all or nothing — which is what a counter looks like. The per-card "Rendu" (`POST /v1/driver/orders/:id/handover`) covers the pharmacy taking some now and the rest later.
+- Unanswered cooler checks stay badged here as well as on Done, so they can be answered from the van before end of day.
+- What the app does **not** do: remind the driver about the coolers or old medications the pharmacy asked for verbally. Those arrangements are made in person and the app carries no field for them (`domain_workflow.md`, scénario C).
 
 ---
 
@@ -214,26 +271,50 @@ Quebec drivers. French default, complete and idiomatic — window labels ("Livra
 
 The defining mobile constraint. Underground parking, concrete apartment towers, and dead zones on the Laurentian autoroute are the working environment, and the server was explicitly built for retrying clients — every driver mutation accepts an `Idempotency-Key`, replays are byte-identical, and a same-key-different-body replay is rejected with `409 IDEMPOTENCY_KEY_CONFLICT` (verified server behaviour).
 
-### 6.1 The outbox
+### 6.1 What ships now: online-first with replay protection
+
+**The SQLite outbox below is deferred, not built.** What stands in its place is the pair the server was designed for, and it is enough to make a retry safe:
+
+- **An `Idempotency-Key` on every driver write.** The server registers that plugin only inside the driver scope, so these are the only calls in the API that get it. It fingerprints method + URL + body against the key, so a byte-identical retry either replays the stored response or runs for the first time — never double-writes. Keys are generated by `src/api/idempotency.ts`, deliberately without `expo-crypto`: this is a collision-avoidance token scoped to one device inside a 24-hour window, not a security primitive, and Expo's winter runtime installs no `crypto.randomUUID`.
+- **Optimistic apply with snapshot rollback.** `src/queue/mutations.ts` cancels in-flight queries, snapshots the cache, applies a pure reducer from `src/queue/optimistic.ts`, and restores the snapshot verbatim on failure. Verbatim, not a computed inverse: the screen has to end up exactly where it started whatever else was in flight.
+- **A failed write surfaces inline and the driver taps again.** The second tap gets a fresh key, which is correct — the first may have a 4xx cached against it for 24 hours.
+- **The poll suspends while a write is in flight.** `cancelQueries` handles a poll already running; `useIsMutating` handles the one that would start during the window and overwrite the optimistic state with server truth that predates it.
+
+Two rules fall out of `gcTime: 0` (§6.3) and are easy to break:
+
+- The queue's cache entry only survives because `GlassTabBar` observes it for the whole tab group's lifetime. A `setQueryData` on a key with no observer is collected on the next tick, taking the optimistic update with it.
+- **Never fire a queue mutation from something that outlives the navigator** — sign-out, for one.
+
+What is genuinely lost without the outbox: a write attempted with no signal fails then and there rather than draining later. `src/api/idempotency.ts` is the seam where persistence lands if that is built.
+
+### 6.2 The outbox — deferred
 
 Every mutation (pickup, complete, return, payment, cooler-check) is written to a local SQLite outbox **before** the network attempt, with a client-generated UUID as its idempotency key, then applied optimistically to the UI.
 
 - The outbox drains in FIFO order per order — a payment recorded before a completion must arrive in that order, because the server refuses payment on a terminal order.
 - Retries use exponential backoff and resume on connectivity change and app foreground.
-- A drained entry is deleted. An entry answered `4xx` (other than `408`/`429`) is **dead** — it will never succeed — and surfaces as a conflict (§6.2) instead of retrying forever.
+- A drained entry is deleted. An entry answered `4xx` (other than `408`/`429`) is **dead** — it will never succeed — and surfaces as a conflict (§6.3) instead of retrying forever.
 - The key travels with the entry, so a retry after app death reuses the same key and lands as a server-side replay, not a duplicate.
 
-### 6.2 Conflicts
+### 6.3 Conflicts
 
-Optimistic UI means the server can disagree after the fact — the admin cancelled the order while the driver was offline, say. When a dead outbox entry is detected, the app re-fetches the queue, reconciles to server truth, and shows a plain notice: "Order for [name] was cancelled by the pharmacy — do not deliver." Conflicts are rare and loud beats silent.
+Optimistic UI means the server can disagree after the fact — the admin reassigned the order seconds before the driver tapped, say. Today that disagreement arrives synchronously: the write fails, the cache is restored from its snapshot, `onSettled` refetches, and the reason renders inline from the server's error *code* (never its prose). `ORDER_ALREADY_TERMINAL`, `ORDER_FORBIDDEN`, and a bare `404` all say something different and useful, and `src/locale/error-message.ts` carries all three in both languages.
 
-### 6.3 What may touch disk
+A `404` on a driver verb means the order left this driver's queue — pulled back, reassigned, or cancelled. It must never be worded as "not ready yet": an unpacked order also answers 404, and the two are indistinguishable by design.
+
+The notice names the **order reference**, not the patient. By the time an order is cancelled the server has already stopped sending the name, so there is nothing to put there even if it were wise.
+
+Once the outbox exists, a dead entry (§6.2) takes the same path asynchronously. Conflicts are rare, and loud beats silent.
+
+### 6.4 What may touch disk
 
 The outbox contains order IDs, verbs, amounts, and timestamps — **no patient name, address, or phone**. The queue cache (which does carry PII) is memory-only and dies with the process; a fresh launch re-fetches. This split is what §4.5 and §8.1 rely on: purging PII never loses a pending write.
 
-### 6.4 Offline honesty
+### 6.5 Offline honesty — deferred with the outbox
 
 A subtle status indicator when the outbox is non-empty ("2 updates pending sync"), so a driver ending their shift in a dead zone knows to keep the app alive until it drains. No modal nagging; the whole design goal is that offline feels identical to online.
+
+Until then there is nothing to be honest *about* — a write either lands or fails in front of the driver — so the app ships no such indicator rather than a placeholder that always reads zero.
 
 ---
 
@@ -259,18 +340,33 @@ The server narrowed the exposure surface; the app's job is not to widen it. The 
 
 ### 8.1 PII lifetime is the active delivery (MVP §8)
 
-The server enforces this: once an order is `completed` or `returned`, its responses simply contain no `patient_name`, `address`, or `phone_number` — the keys are absent, verified down to the serializer types. The app's obligations:
+**The cliff is not the terminal set.** This is the single easiest thing here to get wrong, and getting it wrong hands a patient's address back on every failed delivery.
 
-- Evict the order's PII from the in-memory cache on terminal transition, not merely stop rendering it.
-- Never copy PII into anything that outlives the process: no disk persistence of the queue cache (§6.3), no PII in navigation params, no PII in the address handed to the navigation app after the stop is closed.
+```
+PII_VISIBLE_STATUSES = [in_pharmacy, picked_up]
+TERMINAL_STATUSES    = [completed, returned_to_pharmacy, cancelled]
+```
+
+`returned` is in neither. A failed delivery is **not terminal** — the driver still owes the pharmacy a handover — but the *attempt* is over, so the patient's details go immediately. Anything that re-derives the boundary from "is it finished?" is wrong.
+
+The server enforces it structurally: once an attempt ends, the response simply has no `patient_name`, `address`, `phone_number`, or `authorized_recipient` — the keys are absent, and the closed branch of `toDriverOrderView` does not read those columns at all.
+
+The app mirrors that in its own types rather than restating the status list. `ActiveStop` is defined as `Extract<Stop, { patient_name: string }>` — by the PII it carries, not by a hand-written union — so if the server ever makes another status PII-visible, it lands in that type on the next `npm run api:types` instead of drifting.
+
+**Label codes deliberately survive the strip.** A bag number is not a person, and the hand-back checklist (§5.13) is unusable without them.
+
+The app's obligations:
+
+- Evict the order's PII from the in-memory cache **when the attempt ends**, not merely stop rendering it — and not one poll later. `closeStop` in `src/queue/optimistic.ts` is where that happens: it builds the closed row by naming the keys that survive rather than spreading and deleting, because a spread with an omit list is one forgotten field away from leaving an address behind.
+- Never copy PII into anything that outlives the process: no disk persistence of the queue cache (§6.4), no PII in navigation params, no PII in a banner or a notification row (§5.12), no PII in the address handed to the navigation app after the stop is closed.
 - On logout, deactivation, or token-family revocation: full cache purge (§4.5).
 
-A driver's device holds the addresses of the patients on today's active run — never yesterday's, never a completed stop's.
+A driver's device holds the addresses of the patients on today's *active* run — never yesterday's, never a completed stop's, and never a failed one's.
 
 ### 8.2 Storage rules
 
 - Tokens: `expo-secure-store` only (§4.3).
-- Outbox: SQLite, encrypted at rest, PII-free by construction (§6.3).
+- Outbox (when built, §6.2): SQLite, encrypted at rest, PII-free by construction (§6.4).
 - No PII in AsyncStorage, MMKV, TanStack Query persistence, or any backup-eligible file. Android `allowBackup=false`; the outbox is excluded from iOS backups.
 
 ### 8.3 Logging and crash reporting
@@ -289,7 +385,25 @@ No PII in console output or crash payloads. Sentry `beforeSend` drops request/re
 
 ### 9.1 Ready now
 
-The complete driver flow is built and verified: login/refresh/registration, the queue with PII-stripped terminal orders, pickup / complete / return, payment recording with `matches_amount_due`, cooler-check with three-state semantics, route optimize with the degraded contract, and idempotency on every mutation. The app can be built against the running API today.
+The complete driver flow is built and verified against the running API:
+
+| Endpoint | Used by |
+| --- | --- |
+| `POST /v1/auth/login` · `/refresh` · `/logout` · `/register/driver` · `GET /me` | §4 |
+| `GET /v1/driver/queue?date=&updated_since=` | §5.1 — `stops`, `to_return`, `closed`, `totals`, `unread_notifications` |
+| `POST /v1/driver/orders/{id}/pickup` | §5.3, with `confirmed_package_count` |
+| `POST /v1/driver/orders/{id}/priority` | §5.3 |
+| `POST /v1/driver/orders/{id}/complete` | §5.6, with `payment` **or** `payment_exception` |
+| `POST /v1/driver/orders/{id}/payment` | §5.7, after-the-fact collections only |
+| `POST /v1/driver/orders/{id}/return` | §5.8, `reason` required |
+| `POST /v1/driver/orders/{id}/cooler-check` | §5.9 |
+| `POST /v1/driver/orders/{id}/handover` · `POST /v1/driver/returns/handover` | §5.13 |
+| `POST /v1/driver/queue/sequence` · `/optimize` | §5.4 |
+| `GET /v1/driver/notifications` · `POST /notifications/read` | §5.12 |
+
+Idempotency is accepted on every non-GET driver route and on nothing else in the API.
+
+**Two server behaviours the client must not fight.** An order is born `scheduled` and no driver can see it until staff call `POST /v1/orders/{id}/ready` — which is the admin dashboard's job, not ours. And a driver hitting a `scheduled` order gets **404**, not 409: the repository excludes the row before the state machine is reached, so it is indistinguishable from one that does not exist. There is deliberately no "pas encore prête" string anywhere in this app, because it could never be shown.
 
 ### 9.2 Not built — do not design against these
 
@@ -306,11 +420,13 @@ Ship no placeholder UI for these. A greyed-out tracking toggle teaches drivers t
 ### 9.3 Gaps to raise with the server team
 
 1. **Batch pickup.** Taking 15 packages in charge is 15 `POST`s. The app hides it (§5.3), but a `POST /v1/driver/orders/pickup-batch` would remove a burst of failure modes on the worst network at the pharmacy counter.
-2. **Per-stop ETA.** Mobilus shows an ETA per stop once optimized; our optimize response carries sequence only. When the real Mapbox adapter lands (Phase 5), returning leg durations would let the app show ETAs — and feed a future "on the way" SMS.
+2. **Per-stop ETA.** Partly closed: `estimates` now carries `distance_meters` and `duration_seconds` per order. The current `FakeOptimizer` never populates it, so the app renders distances when they arrive and nothing when they do not. A real adapter closes this.
 3. **Per-order time constraints.** Mobilus supports "after 17:00" per order; we model only the AM/PM window. If pharmacies ask for it, it is an `orders` column plus optimizer input, and the card design (§5.2) already reserves the chip slot.
-4. **Manual reordering.** Mobilus lets drivers reorder stops by hand, and drivers who know their territory will ask. Needs an endpoint that writes `sequence_number` from a client-supplied order.
-5. **Driver day-summary.** Mobilus offers cash and travel reports. A `GET /v1/driver/summary?date=` (deliveries, returns, cash vs card collected) would back an end-of-shift POS reconciliation screen — the `closed` payload nearly suffices already if payment fields are included on terminal orders.
-6. **Queue delta polling.** `GET /v1/driver/queue` is a full re-fetch every 30 s. Fine at MVP scale; an `updated_since` parameter (the admin orders list already has one) would cut payload and battery when queues grow.
+4. **Driver day-summary.** Mobilus offers cash and travel reports. A `GET /v1/driver/summary?date=` (deliveries, returns, cash vs card collected) would back an end-of-shift POS reconciliation screen — the `closed` payload nearly suffices already if payment fields are included on terminal orders.
+5. **Pharmacy address.** `pharmacy` is `{ name, phone, return_deadline }`. The return-to-pharmacy leg (§5.13) has no destination to hand a navigation intent for the trip back.
+6. **A driver-scoped read of one order.** Every route under `/v1/orders` is admin-only, so there is no `GET /v1/driver/orders/{id}`. A notification row that points at an order not in today's payload has nothing to fetch, and conflict reconciliation refetches the whole day to see one row.
+
+*Closed since the last revision:* manual reordering (`POST /v1/driver/queue/sequence`), `updated_since` on the queue, a required return reason, the return handover leg, and per-order priority.
 
 ---
 
@@ -325,7 +441,7 @@ Ship no placeholder UI for these. A greyed-out tracking toggle teaches drivers t
 | Poll cadence                              | Queue every 30 s foregrounded; nothing in background                                                                                                         |
 | Crash-free sessions                       | > 99.5%                                                                                                                                                      |
 | Accessibility                             | Dynamic type respected on cards; VoiceOver/TalkBack labels on all actions; 4.5:1 contrast on the dark theme                                                  |
-| Test coverage                             | Non-negotiable: outbox replay ordering and idempotency-key reuse, PII cache eviction on terminal transition, refresh single-flight, degraded-route rendering |
+| Test coverage                             | Non-negotiable: idempotency-key uniqueness and reuse, PII cache eviction when the delivery attempt ends, optimistic rollback, the transitions mirror against the live server, refresh single-flight, degraded-route rendering |
 
 ---
 
@@ -334,9 +450,9 @@ Ship no placeholder UI for these. A greyed-out tracking toggle teaches drivers t
 1. **Foundation** — Expo scaffold, generated API types, typed client with refresh single-flight, secure token storage, error envelope handling, CI + EAS.
 2. **Session** — login, invite-code registration, deactivation/revocation wipe path. _Hardest to retrofit; matches the dashboard's lesson._
 3. **Queue read path** — tabs, cards, detail sheet, pharmacy/client calling, FR/EN wiring. Establishes the PII memory-only cache and eviction rules.
-4. **The delivery verbs** — pickup (with batch select), complete, return, payment sheet, cooler prompt — all through the outbox from day one. Building optimistic-first is much cheaper than bolting it on.
-5. **Route & map** — optimize with degraded handling, Mapbox map view, navigation handoff.
-6. **Polish** — Done tab and return checklist, sync indicator, conflict surfacing, accessibility pass, screenshot flags.
+4. **The delivery verbs** — pickup (with batch select and the label check), complete with payment or exception, return with a reason, cooler prompt, the hand-back leg — online-first, optimistic from day one (§6.1). The outbox slots in behind `newIdempotencyKey` later.
+5. **Route** — manual sequencing, optimize with degraded handling, navigation handoff. No map: the API exposes no coordinates.
+6. **Polish** — conflict surfacing, accessibility pass, screenshot flags, FR/EN sweep. (The Done tab, the hand-back checklist, and the notifications feed landed with step 4.)
 7. **Later phases** — background location + live push + traffic-aware ETAs, as the server ships Phase 5.
 
 ---

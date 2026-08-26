@@ -1,6 +1,6 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import type { UseQueryResult } from '@tanstack/react-query';
-import { useIsFocused } from 'expo-router';
+import { router, useIsFocused } from 'expo-router';
 import {
   ActivityIndicator,
   Alert,
@@ -13,6 +13,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppHeader, Banner, EmptyState } from '@/components/driver/chrome';
+import { NotificationBell } from '@/components/driver/notification-bell';
 import { SecondaryAction } from '@/components/driver/actions';
 import { useSession } from '@/auth/session-provider';
 import { useTheme } from '@/design/theme';
@@ -22,12 +23,12 @@ import { useStrings } from '@/locale/locale-provider';
 import type { QueueResponse } from '@/api/types';
 
 /**
- * The frame the three queue pages share.
+ * The frame the four queue pages share.
  *
- * Ready, On the way, and Done differ only in which slice of the payload they
- * render and what "empty" means for them — the header, the refresh behaviour,
- * the error handling, and the loading state are identical, and duplicating
- * them three times is how they drift apart.
+ * Ready, On the way, À rapporter, and Done differ only in which slice of the
+ * payload they render and what "empty" means for them — the header, the
+ * refresh behaviour, the error handling, and the loading state are identical,
+ * and duplicating them four times is how they drift apart.
  */
 export function QueueScreen<T>({
   query,
@@ -37,6 +38,9 @@ export function QueueScreen<T>({
   emptyIcon,
   emptyTitle,
   emptyBody,
+  banner,
+  headerAction,
+  footer,
 }: {
   query: UseQueryResult<QueueResponse, Error>;
   items: T[];
@@ -45,6 +49,20 @@ export function QueueScreen<T>({
   emptyIcon: keyof typeof Ionicons.glyphMap;
   emptyTitle: string;
   emptyBody: string;
+  /**
+   * A page's own notice, rendered below the shared ones. Ready and On the way
+   * say different things about the same arrival, so the message is composed by
+   * the page rather than derived here.
+   */
+  banner?: React.ReactNode;
+  /** Extra chrome beside the bell. The bell itself is rendered here. */
+  headerAction?: React.ReactNode;
+  /**
+   * A batch action bar, pinned above the tab bar rather than scrolled with
+   * the list: the driver reaches it with a thumb while reading the top of the
+   * list, which is the whole point of "take these eight in charge".
+   */
+  footer?: React.ReactNode;
 }) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
@@ -94,6 +112,22 @@ export function QueueScreen<T>({
           subtitle={query.data?.date}
           settingsLabel={t.signOut}
           onSettings={confirmSignOut}
+          /*
+            The bell lives here rather than on each page so all four tabs get
+            it from one place — and it badges from `unread_notifications` on
+            the queue payload, which means the count costs no extra request.
+            The feed itself is only fetched when the screen opens.
+          */
+          trailing={
+            <>
+              {headerAction}
+              <NotificationBell
+                unread={query.data?.unread_notifications ?? 0}
+                label={t.notifications}
+                onPress={() => router.push('/notifications')}
+              />
+            </>
+          }
         />
 
         {notice ? (
@@ -119,6 +153,8 @@ export function QueueScreen<T>({
         {query.data?.degraded ? (
           <Banner tone="caution" icon="git-branch-outline" message={t.degraded} />
         ) : null}
+
+        {banner}
       </View>
 
       {showSpinner ? (
@@ -149,6 +185,8 @@ export function QueueScreen<T>({
           }
         />
       )}
+
+      {footer ? <View style={styles.footer}>{footer}</View> : null}
     </View>
   );
 }
@@ -166,4 +204,5 @@ const styles = StyleSheet.create({
   loading: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: Space.md },
   loadingText: { ...Type.meta },
   retry: { flex: 0 },
+  footer: { paddingHorizontal: Space.lg, paddingBottom: Space.sm, gap: Space.sm },
 });

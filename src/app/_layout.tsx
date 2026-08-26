@@ -9,7 +9,9 @@ import { MeshBackground } from '@/components/glass/mesh-background';
 import { AppThemeProvider } from '@/design/theme-provider';
 import { useTheme } from '@/design/theme';
 import { LocaleProvider } from '@/locale/locale-provider';
+import { subscribeAppStateFocus } from '@/queue/app-state-focus';
 import { createQueryClient } from '@/queue/query-client';
+import { RealtimeProvider } from '@/queue/realtime-provider';
 
 /**
  * Hold the native splash until the Keychain has answered.
@@ -75,6 +77,13 @@ function Navigation() {
           */}
           <Stack.Protected guard={signedIn}>
             <Stack.Screen name="(app)" />
+            {/*
+              Pushed over the tab group rather than declared inside it. The
+              feed is a destination, not a fifth state of the day, and pushing
+              leaves the tabs mounted underneath — which is what keeps the
+              queue's only long-lived observer alive under `gcTime: 0`.
+            */}
+            <Stack.Screen name="notifications" options={{ presentation: 'card' }} />
           </Stack.Protected>
 
           {/*
@@ -105,12 +114,28 @@ export default function RootLayout() {
   // a fast refresh does not leave two caches holding patient data.
   const [queryClient] = useState(createQueryClient);
 
+  /*
+    Once for the process, and above every screen: it is what makes the queue's
+    30-second poll stop when the phone is pocketed and resume when the driver
+    comes back from the dialer or a navigation app. It returns its own
+    unsubscribe, which is exactly the cleanup `useEffect` wants.
+  */
+  useEffect(subscribeAppStateFocus, []);
+
   return (
     <AppThemeProvider initialMode="dark">
       <LocaleProvider>
         <QueryClientProvider client={queryClient}>
           <SessionProvider>
-            <Navigation />
+            {/*
+              Inside the session (it holds a socket only while a driver is
+              signed in) and above every screen, because `useQueue` reads its
+              connected flag to choose a poll interval and the tab bar calls
+              that from outside any single page.
+            */}
+            <RealtimeProvider>
+              <Navigation />
+            </RealtimeProvider>
           </SessionProvider>
         </QueryClientProvider>
       </LocaleProvider>
