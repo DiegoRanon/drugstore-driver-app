@@ -1,0 +1,19 @@
+{
+  "name": "Livramed Driver",
+  "short_name": "Driver",
+  "description": "Delivery queue for pharmacy drivers.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#060912",
+  "theme_color": "#060912",
+  "icons": [
+    {
+      "src": "/icon.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

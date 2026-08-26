@@ -32,6 +32,7 @@
     "react-native-screens": "~4.26.0",
     "react-native-web": "~0.21.0",
     "react-native-worklets": "0.10.1",
+    "serve": "^14.2.6",
     "socket.io-client": "^4.8.3"
   },
   "devDependencies": {
@@ -53,6 +54,8 @@
     "android": "expo run:android",
     "ios": "expo run:ios",
     "web": "expo start --web",
+    "build:web": "expo export -p web --output-dir dist && node scripts/finalize-web-export.mjs",
+    "start:web": "serve dist -l ${PORT:-8080}",
     "lint": "expo lint",
     "test": "jest",
     "verify:api": "jest --config jest.verify.config.js",
