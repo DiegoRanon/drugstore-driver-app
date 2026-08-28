@@ -20,12 +20,15 @@ export function AppHeader({
   subtitle,
   onSettings,
   settingsLabel,
+  settingsIcon = 'settings-outline',
   trailing,
 }: {
   title: string;
   subtitle?: string;
   onSettings?: () => void;
   settingsLabel: string;
+  /** The glyph is the whole affordance here, so it names the action it runs. */
+  settingsIcon?: keyof typeof Ionicons.glyphMap;
   trailing?: React.ReactNode;
 }) {
   const theme = useTheme();
@@ -51,7 +54,7 @@ export function AppHeader({
         <IconAction
           label={settingsLabel}
           onPress={onSettings}
-          icon={<Ionicons name="settings-outline" size={20} color={theme.ink.secondary} />}
+          icon={<Ionicons name={settingsIcon} size={20} color={theme.ink.secondary} />}
         />
       ) : null}
     </View>

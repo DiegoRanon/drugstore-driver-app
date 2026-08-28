@@ -1,9 +1,9 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import type { UseQueryResult } from '@tanstack/react-query';
 import { router, useIsFocused } from 'expo-router';
+import { useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   RefreshControl,
   StyleSheet,
@@ -13,6 +13,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppHeader, Banner, EmptyState } from '@/components/driver/chrome';
+import { ConfirmSheet } from '@/components/driver/confirm-sheet';
 import { NotificationBell } from '@/components/driver/notification-bell';
 import { SecondaryAction } from '@/components/driver/actions';
 import { useSession } from '@/auth/session-provider';
@@ -89,12 +90,7 @@ export function QueueScreen<T>({
     (state.status === 'signed-in' ? state.profile?.organization.name : undefined) ??
     t.pharmacy;
 
-  function confirmSignOut() {
-    Alert.alert(t.signOutConfirmTitle, t.signOutConfirmBody, [
-      { text: t.cancel, style: 'cancel' },
-      { text: t.signOut, style: 'destructive', onPress: () => void signOut() },
-    ]);
-  }
+  const [confirmingSignOut, setConfirmingSignOut] = useState(false);
 
   // A first load with nothing to show yet. A refetch over existing data stays
   // silent — the list is still correct, and a spinner over a readable queue is
@@ -111,7 +107,8 @@ export function QueueScreen<T>({
           title={pharmacyName}
           subtitle={query.data?.date}
           settingsLabel={t.signOut}
-          onSettings={confirmSignOut}
+          settingsIcon="log-out-outline"
+          onSettings={() => setConfirmingSignOut(true)}
           /*
             The bell lives here rather than on each page so all four tabs get
             it from one place — and it badges from `unread_notifications` on
@@ -187,6 +184,19 @@ export function QueueScreen<T>({
       )}
 
       {footer ? <View style={styles.footer}>{footer}</View> : null}
+
+      <ConfirmSheet
+        visible={confirmingSignOut}
+        title={t.signOutConfirmTitle}
+        body={t.signOutConfirmBody}
+        confirmLabel={t.signOut}
+        cancelLabel={t.cancel}
+        onCancel={() => setConfirmingSignOut(false)}
+        onConfirm={() => {
+          setConfirmingSignOut(false);
+          void signOut();
+        }}
+      />
     </View>
   );
 }

@@ -40,7 +40,7 @@ jest.mock('expo-secure-store', () => ({
 }));
 
 import { QueryClientProvider } from '@tanstack/react-query';
-import { render, screen } from '@testing-library/react-native';
+import { fireEvent, render, screen } from '@testing-library/react-native';
 import { Text } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
@@ -174,6 +174,34 @@ describe('the focused tab', () => {
     expect(
       screen.getByText('Route non optimisée — ordre précédent conservé'),
     ).toBeTruthy();
+  });
+});
+
+describe('signing out', () => {
+  /**
+   * The confirmation used to be `Alert.alert`, which react-native-web does not
+   * implement: on the deployed web build the header control did nothing at all.
+   * Asserting on rendered text is what keeps the prompt a real component.
+   */
+  it('asks before it signs the driver out', () => {
+    mount(screenWithPatient());
+
+    expect(screen.queryByText('Se déconnecter ?')).toBeNull();
+
+    fireEvent.press(screen.getByLabelText('Déconnexion'));
+
+    expect(screen.getByText('Se déconnecter ?')).toBeTruthy();
+    // The queue stays underneath: asking is not leaving.
+    expect(screen.getByText('Evelyn Harper')).toBeTruthy();
+  });
+
+  it('backs out without touching the session', () => {
+    mount(screenWithPatient());
+
+    fireEvent.press(screen.getByLabelText('Déconnexion'));
+    fireEvent.press(screen.getByLabelText('Annuler'));
+
+    expect(screen.queryByText('Se déconnecter ?')).toBeNull();
   });
 });
 
