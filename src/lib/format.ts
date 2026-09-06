@@ -51,3 +51,60 @@ export function clock(iso: string | null, locale: 'fr' | 'en'): string | null {
     hour12: locale === 'en',
   }).format(date);
 }
+
+/**
+ * Travel distance to a stop, as the optimizer measured it.
+ *
+ * Rounded hard on purpose: under a kilometre reads in hundreds of metres,
+ * above it to one decimal. A driver glancing at a card is deciding "is this
+ * the next one or the one after" — three significant figures would imply a
+ * precision the routing engine does not have, and would not change the answer.
+ *
+ * Returns null for a null reading, so the caller renders nothing rather than
+ * "0 km". A missing estimate means the provider could not measure; it does not
+ * mean the stop is close.
+ */
+export function distance(meters: number | null, locale: 'fr' | 'en'): string | null {
+  if (meters === null || !Number.isFinite(meters) || meters < 0) return null;
+
+  if (meters < 1000) {
+    const rounded = Math.max(50, Math.round(meters / 50) * 50);
+    return `${rounded} m`;
+  }
+
+  const km = meters / 1000;
+  const value = new Intl.NumberFormat(locale === 'fr' ? 'fr-CA' : 'en-CA', {
+    maximumFractionDigits: km < 10 ? 1 : 0,
+  }).format(km);
+  return `${value} km`;
+}
+
+/**
+ * Travel time to a stop. Same coarseness as `elapsedLabel`, and the same
+ * shape, so the two read as one family on a card that shows both.
+ */
+export function duration(seconds: number | null): string | null {
+  if (seconds === null || !Number.isFinite(seconds) || seconds < 0) return null;
+
+  const minutes = Math.round(seconds / 60);
+  // "min" and "h" read the same in both locales, which is why this takes no
+  // locale — same reason `elapsedLabel` does not.
+  if (minutes < 1) return '< 1 min';
+  if (minutes < 60) return `${minutes} min`;
+
+  const hours = Math.floor(minutes / 60);
+  const rest = minutes % 60;
+  return rest === 0 ? `${hours} h` : `${hours} h ${rest}`;
+}
+
+/**
+ * The interval the pharmacy promised, when there is one.
+ *
+ * `HH:MM:SS` and `HH:MM` both arrive from the API depending on the column, so
+ * both are trimmed to the clock face a person reads.
+ */
+export function timeRange(start: string | null, end: string | null): string | null {
+  if (!start || !end) return null;
+  const face = (value: string): string => value.slice(0, 5);
+  return `${face(start)} – ${face(end)}`;
+}

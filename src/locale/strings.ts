@@ -205,6 +205,18 @@ const fr = {
   saveOrder: 'Enregistrer l’ordre',
   moveUp: 'Monter',
   moveDown: 'Descendre',
+  /** Fenêtre promise au patient, plus précise que le créneau AM/PM. */
+  promisedWindow: 'Promis entre',
+  /** Whole-run estimate, above the list. */
+  finishBy: 'Fin estimée',
+  etaPartial: (count: number) =>
+    count === 1
+      ? '1 arrêt sans estimation (adresse non localisée)'
+      : `${count} arrêts sans estimation (adresses non localisées)`,
+  /** Predicted arrival on a card. */
+  arriveAt: (time: string) => `Arrivée ~${time}`,
+  noCoordinates: 'Adresse non localisée',
+  navigateUnavailable: "Cette adresse n'a pas de position — ouvrez la carte manuellement.",
 
   // --- errors, keyed by server code ---------------------------------------
   errors: {
@@ -430,6 +442,15 @@ const en: Strings = {
   saveOrder: 'Save order',
   moveUp: 'Move up',
   moveDown: 'Move down',
+  promisedWindow: 'Promised between',
+  finishBy: 'Estimated finish',
+  etaPartial: (count: number) =>
+    count === 1
+      ? '1 stop not estimated (address not located)'
+      : `${count} stops not estimated (addresses not located)`,
+  arriveAt: (time: string) => `Arrive ~${time}`,
+  noCoordinates: 'Address not located',
+  navigateUnavailable: 'This address has no location — open your map manually.',
 
   errors: {
     INVALID_CREDENTIALS: 'Incorrect email or password.',

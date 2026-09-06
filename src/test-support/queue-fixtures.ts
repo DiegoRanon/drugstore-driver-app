@@ -12,6 +12,7 @@
  */
 import type {
   ActiveStop,
+  Estimate,
   Notification,
   Package,
   QueueResponse,
@@ -41,9 +42,15 @@ export function activeStop(overrides: Partial<ActiveStop> = {}): ActiveStop {
     delivery_date: DATE,
     delivery_window: 'AM',
     requested_delivery_time: null,
+    requested_time_start: null,
+    requested_time_end: null,
     patient_name: 'Evelyn Harper',
     address: '4210 Willow Creek Dr',
     phone_number: '+15145550142',
+    // Geocoded by default: the routed case is the ordinary one, and a suite
+    // that wants the hand-typed address overrides both to null.
+    latitude: 45.5019,
+    longitude: -73.5674,
     authorized_recipient: null,
     amount_due: null,
     payment_status: 'unpaid',
@@ -102,6 +109,22 @@ export function totals(overrides: Partial<QueueTotals> = {}): QueueTotals {
     amount_due_total: 0,
     requires_payment_terminal: false,
     packages_to_return: 0,
+    ...overrides,
+  };
+}
+
+/**
+ * Travel from the previous point on the route to this stop.
+ *
+ * Only ever present on an optimize response, and only when the provider could
+ * measure as well as order — so a suite that wants estimates has to ask for
+ * them, exactly as a caller does.
+ */
+export function estimate(overrides: Partial<Estimate> = {}): Estimate {
+  return {
+    order_id: 'active-1',
+    distance_meters: 2400,
+    duration_seconds: 360,
     ...overrides,
   };
 }

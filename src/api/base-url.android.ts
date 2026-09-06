@@ -4,10 +4,10 @@
  */
 
 /**
- * The Android emulator cannot see the host's `localhost`; `10.0.2.2` is the
- * alias its network stack maps back to the host machine.
+ * The local physical-device workflow uses `adb reverse tcp:3000 tcp:3000`,
+ * which exposes the computer's API as the phone's `127.0.0.1:3000`.
  *
- * A physical device shares neither, so it needs `EXPO_PUBLIC_API_URL` set to
- * the laptop's LAN address.
+ * Run `npm run android:usb` after reconnecting the phone. Emulator and LAN
+ * builds can still override this with `EXPO_PUBLIC_API_URL`.
  */
-export const DEFAULT_BASE_URL = 'http://10.0.2.2:3000';
+export const DEFAULT_BASE_URL = 'http://127.0.0.1:3000';

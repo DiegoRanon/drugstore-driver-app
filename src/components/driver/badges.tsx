@@ -153,6 +153,27 @@ export function DelayChip({ label }: { label: string }) {
   );
 }
 
+/**
+ * Travel from the previous stop on the route — distance, time, or both.
+ *
+ * Deliberately a different icon from `DelayChip`'s clock: that one counts how
+ * long a package has been in the van, this one says how far the next one is.
+ * A driver scanning a card must not have to work out which clock is which.
+ *
+ * Only rendered when the optimizer actually measured. Absent estimates mean
+ * the provider could not measure, never that the stop is close.
+ */
+export function TravelChip({ label }: { label: string }) {
+  const theme = useTheme();
+  return (
+    <Chip
+      color={theme.ink.tertiary}
+      icon={<Ionicons name="navigate-outline" size={14} color={theme.ink.tertiary} />}
+      label={label}
+    />
+  );
+}
+
 /** Position in the server-assigned route. Never a client-side sort (PRD §3.1). */
 export function SequenceBadge({ value, active = false }: { value: number; active?: boolean }) {
   const theme = useTheme();

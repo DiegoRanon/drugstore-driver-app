@@ -1,5 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react-native';
 import type { ReactElement } from 'react';
+import { Modal } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import DesignGallery from '@/app/design';
@@ -63,7 +64,9 @@ const sheetLabels = (locale: 'fr' | 'en') => {
     client: t.client,
     callClient: t.callClient,
     callPharmacy: t.callPharmacy,
+    navigate: t.navigate,
     window: t.window,
+    promisedWindow: t.promisedWindow,
     amountDue: t.amountDue,
     paymentAtDoor: t.paymentAtDoor,
     cooler: t.cooler,
@@ -138,6 +141,28 @@ describe('ClosedOrderCard', () => {
 });
 
 describe('StopSheet', () => {
+  it('opens as a full-screen modal with an explicit close control', () => {
+    const onDismiss = jest.fn();
+    const view = mount(
+      <StopSheet
+        stop={ACTIVE}
+        locale="fr"
+        transitions={['complete', 'return']}
+        labels={sheetLabels('fr')}
+        fullScreen
+        dismissLabel={STRINGS.fr.cancel}
+        onDismiss={onDismiss}
+      />,
+    );
+
+    const modal = view.UNSAFE_getByType(Modal);
+    expect(modal.props.presentationStyle).toBe('fullScreen');
+    expect(modal.props.transparent).not.toBe(true);
+
+    fireEvent.press(screen.getByLabelText(STRINGS.fr.cancel));
+    expect(onDismiss).toHaveBeenCalledTimes(1);
+  });
+
   it('renders only the transitions the server allows', () => {
     mount(
       <StopSheet

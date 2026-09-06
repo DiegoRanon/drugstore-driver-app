@@ -471,6 +471,10 @@ export interface paths {
                                 name: string;
                                 address: string;
                                 phone_number: string;
+                                place_id: string | null;
+                                formatted_address: string | null;
+                                latitude: number | null;
+                                longitude: number | null;
                                 notes: string | null;
                                 is_active: boolean;
                                 created_at: string;
@@ -499,6 +503,10 @@ export interface paths {
                         name: string;
                         address: string;
                         phone_number: string;
+                        place_id?: string | null;
+                        formatted_address?: string | null;
+                        latitude?: number | null;
+                        longitude?: number | null;
                         notes?: string | null;
                     };
                 };
@@ -516,6 +524,10 @@ export interface paths {
                             name: string;
                             address: string;
                             phone_number: string;
+                            place_id: string | null;
+                            formatted_address: string | null;
+                            latitude: number | null;
+                            longitude: number | null;
                             notes: string | null;
                             is_active: boolean;
                             created_at: string;
@@ -563,6 +575,10 @@ export interface paths {
                             name: string;
                             address: string;
                             phone_number: string;
+                            place_id: string | null;
+                            formatted_address: string | null;
+                            latitude: number | null;
+                            longitude: number | null;
                             notes: string | null;
                             is_active: boolean;
                             created_at: string;
@@ -616,6 +632,10 @@ export interface paths {
                         name?: string;
                         address?: string;
                         phone_number?: string;
+                        place_id?: string | null;
+                        formatted_address?: string | null;
+                        latitude?: number | null;
+                        longitude?: number | null;
                         notes?: string | null;
                         is_active?: boolean;
                     };
@@ -634,6 +654,10 @@ export interface paths {
                             name: string;
                             address: string;
                             phone_number: string;
+                            place_id: string | null;
+                            formatted_address: string | null;
+                            latitude: number | null;
+                            longitude: number | null;
                             notes: string | null;
                             is_active: boolean;
                             created_at: string;
@@ -692,10 +716,16 @@ export interface paths {
                                 address: string;
                                 phone_number: string;
                                 authorized_recipient: string | null;
+                                place_id: string | null;
+                                formatted_address: string | null;
+                                latitude: number | null;
+                                longitude: number | null;
                                 delivery_date: string;
                                 /** @enum {string} */
                                 delivery_window: "AM" | "PM";
                                 requested_delivery_time: string | null;
+                                requested_time_start: string | null;
+                                requested_time_end: string | null;
                                 /** @enum {string} */
                                 status: "scheduled" | "in_pharmacy" | "picked_up" | "completed" | "returned" | "returned_to_pharmacy" | "cancelled";
                                 is_priority: boolean;
@@ -764,10 +794,16 @@ export interface paths {
                         address?: string;
                         phone_number?: string;
                         authorized_recipient?: string | null;
+                        place_id?: string | null;
+                        formatted_address?: string | null;
+                        latitude?: number | null;
+                        longitude?: number | null;
                         delivery_date: string;
                         /** @enum {string} */
                         delivery_window: "AM" | "PM";
                         requested_delivery_time?: string | null;
+                        requested_time_start?: string | null;
+                        requested_time_end?: string | null;
                         /** @enum {string} */
                         payment_status?: "paid" | "unpaid";
                         amount_due?: number | null;
@@ -799,10 +835,16 @@ export interface paths {
                             address: string;
                             phone_number: string;
                             authorized_recipient: string | null;
+                            place_id: string | null;
+                            formatted_address: string | null;
+                            latitude: number | null;
+                            longitude: number | null;
                             delivery_date: string;
                             /** @enum {string} */
                             delivery_window: "AM" | "PM";
                             requested_delivery_time: string | null;
+                            requested_time_start: string | null;
+                            requested_time_end: string | null;
                             /** @enum {string} */
                             status: "scheduled" | "in_pharmacy" | "picked_up" | "completed" | "returned" | "returned_to_pharmacy" | "cancelled";
                             is_priority: boolean;
@@ -840,6 +882,128 @@ export interface paths {
                             cancelled_at: string | null;
                             created_at: string;
                             updated_at: string;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/orders/route/optimize": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Optimize and persist a driver's stop order for a day
+         * @description Writes sequence_number for every active stop assigned to the driver on that date. A provider failure keeps the previous order and returns degraded: true rather than an error. Stops without coordinates are appended and listed in unroutable_order_ids.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        date: string;
+                        /** Format: uuid */
+                        driver_id: string;
+                        time_range?: {
+                            start: string;
+                            end: string;
+                        };
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            date: string;
+                            /** Format: uuid */
+                            driver_id: string;
+                            orders: {
+                                /** Format: uuid */
+                                id: string;
+                                /** Format: uuid */
+                                client_id: string;
+                                /** Format: uuid */
+                                driver_id: string | null;
+                                patient_name: string;
+                                address: string;
+                                phone_number: string;
+                                authorized_recipient: string | null;
+                                place_id: string | null;
+                                formatted_address: string | null;
+                                latitude: number | null;
+                                longitude: number | null;
+                                delivery_date: string;
+                                /** @enum {string} */
+                                delivery_window: "AM" | "PM";
+                                requested_delivery_time: string | null;
+                                requested_time_start: string | null;
+                                requested_time_end: string | null;
+                                /** @enum {string} */
+                                status: "scheduled" | "in_pharmacy" | "picked_up" | "completed" | "returned" | "returned_to_pharmacy" | "cancelled";
+                                is_priority: boolean;
+                                sequence_number: number | null;
+                                /** @enum {string} */
+                                payment_status: "paid" | "unpaid";
+                                payment_collected: boolean;
+                                /** @enum {string|null} */
+                                payment_method: "cash" | "card" | null;
+                                amount_due: number | null;
+                                amount_collected: number | null;
+                                /** @enum {string|null} */
+                                payment_exception: "waived_by_pharmacy" | "deferred_to_pharmacy" | null;
+                                payment_exception_note: string | null;
+                                /** @enum {string|null} */
+                                failure_reason: "customer_absent" | "customer_refused" | "wrong_address" | "payment_refused" | "other" | null;
+                                failure_note: string | null;
+                                requires_cooler_bag: boolean;
+                                cooler_bag_confirmed: boolean | null;
+                                packages: {
+                                    /** Format: uuid */
+                                    id: string;
+                                    label_code: string;
+                                    /** @enum {string} */
+                                    package_type: "bag" | "cooler" | "tote" | "envelope";
+                                    position: number;
+                                }[];
+                                package_count: number;
+                                pickup_package_count: number | null;
+                                ready_at: string | null;
+                                picked_up_at: string | null;
+                                completed_at: string | null;
+                                returned_at: string | null;
+                                returned_to_pharmacy_at: string | null;
+                                cancelled_at: string | null;
+                                created_at: string;
+                                updated_at: string;
+                            }[];
+                            degraded: boolean;
+                            estimates?: {
+                                /** Format: uuid */
+                                order_id: string;
+                                distance_meters: number | null;
+                                duration_seconds: number | null;
+                            }[];
+                            unroutable_order_ids: string[];
                         };
                     };
                 };
@@ -945,10 +1109,16 @@ export interface paths {
                             address: string;
                             phone_number: string;
                             authorized_recipient: string | null;
+                            place_id: string | null;
+                            formatted_address: string | null;
+                            latitude: number | null;
+                            longitude: number | null;
                             delivery_date: string;
                             /** @enum {string} */
                             delivery_window: "AM" | "PM";
                             requested_delivery_time: string | null;
+                            requested_time_start: string | null;
+                            requested_time_end: string | null;
                             /** @enum {string} */
                             status: "scheduled" | "in_pharmacy" | "picked_up" | "completed" | "returned" | "returned_to_pharmacy" | "cancelled";
                             is_priority: boolean;
@@ -1021,10 +1191,16 @@ export interface paths {
                         address?: string;
                         phone_number?: string;
                         authorized_recipient?: string | null;
+                        place_id?: string | null;
+                        formatted_address?: string | null;
+                        latitude?: number | null;
+                        longitude?: number | null;
                         delivery_date?: string;
                         /** @enum {string} */
                         delivery_window?: "AM" | "PM";
                         requested_delivery_time?: string | null;
+                        requested_time_start?: string | null;
+                        requested_time_end?: string | null;
                         /** @enum {string} */
                         payment_status?: "paid" | "unpaid";
                         amount_due?: number | null;
@@ -1056,10 +1232,16 @@ export interface paths {
                             address: string;
                             phone_number: string;
                             authorized_recipient: string | null;
+                            place_id: string | null;
+                            formatted_address: string | null;
+                            latitude: number | null;
+                            longitude: number | null;
                             delivery_date: string;
                             /** @enum {string} */
                             delivery_window: "AM" | "PM";
                             requested_delivery_time: string | null;
+                            requested_time_start: string | null;
+                            requested_time_end: string | null;
                             /** @enum {string} */
                             status: "scheduled" | "in_pharmacy" | "picked_up" | "completed" | "returned" | "returned_to_pharmacy" | "cancelled";
                             is_priority: boolean;
@@ -1145,10 +1327,16 @@ export interface paths {
                             address: string;
                             phone_number: string;
                             authorized_recipient: string | null;
+                            place_id: string | null;
+                            formatted_address: string | null;
+                            latitude: number | null;
+                            longitude: number | null;
                             delivery_date: string;
                             /** @enum {string} */
                             delivery_window: "AM" | "PM";
                             requested_delivery_time: string | null;
+                            requested_time_start: string | null;
+                            requested_time_end: string | null;
                             /** @enum {string} */
                             status: "scheduled" | "in_pharmacy" | "picked_up" | "completed" | "returned" | "returned_to_pharmacy" | "cancelled";
                             is_priority: boolean;
@@ -1242,10 +1430,16 @@ export interface paths {
                             address: string;
                             phone_number: string;
                             authorized_recipient: string | null;
+                            place_id: string | null;
+                            formatted_address: string | null;
+                            latitude: number | null;
+                            longitude: number | null;
                             delivery_date: string;
                             /** @enum {string} */
                             delivery_window: "AM" | "PM";
                             requested_delivery_time: string | null;
+                            requested_time_start: string | null;
+                            requested_time_end: string | null;
                             /** @enum {string} */
                             status: "scheduled" | "in_pharmacy" | "picked_up" | "completed" | "returned" | "returned_to_pharmacy" | "cancelled";
                             is_priority: boolean;
@@ -1338,10 +1532,16 @@ export interface paths {
                             address: string;
                             phone_number: string;
                             authorized_recipient: string | null;
+                            place_id: string | null;
+                            formatted_address: string | null;
+                            latitude: number | null;
+                            longitude: number | null;
                             delivery_date: string;
                             /** @enum {string} */
                             delivery_window: "AM" | "PM";
                             requested_delivery_time: string | null;
+                            requested_time_start: string | null;
+                            requested_time_end: string | null;
                             /** @enum {string} */
                             status: "scheduled" | "in_pharmacy" | "picked_up" | "completed" | "returned" | "returned_to_pharmacy" | "cancelled";
                             is_priority: boolean;
@@ -1428,10 +1628,16 @@ export interface paths {
                             address: string;
                             phone_number: string;
                             authorized_recipient: string | null;
+                            place_id: string | null;
+                            formatted_address: string | null;
+                            latitude: number | null;
+                            longitude: number | null;
                             delivery_date: string;
                             /** @enum {string} */
                             delivery_window: "AM" | "PM";
                             requested_delivery_time: string | null;
+                            requested_time_start: string | null;
+                            requested_time_end: string | null;
                             /** @enum {string} */
                             status: "scheduled" | "in_pharmacy" | "picked_up" | "completed" | "returned" | "returned_to_pharmacy" | "cancelled";
                             is_priority: boolean;
@@ -1474,6 +1680,102 @@ export interface paths {
                 };
             };
         };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/places/autocomplete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Address suggestions for a partial input
+         * @description Proxies the configured Places provider. Returns an empty list when the provider is unavailable, so an address can always still be typed by hand. Pass the same session_token for every keystroke of one address and for the resolve call that follows.
+         */
+        get: {
+            parameters: {
+                query: {
+                    q: string;
+                    session_token: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data: {
+                                place_id: string;
+                                primary_text: string;
+                                secondary_text: string;
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/places/{place_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Resolve a chosen suggestion to an address and coordinates
+         * @description Closes the autocomplete session. Unlike the suggestion endpoint this fails loudly, because it runs after a deliberate choice.
+         */
+        get: {
+            parameters: {
+                query: {
+                    session_token: string;
+                };
+                header?: never;
+                path: {
+                    place_id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            place_id: string;
+                            formatted_address: string;
+                            latitude: number;
+                            longitude: number;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1669,9 +1971,13 @@ export interface paths {
                                 /** @enum {string} */
                                 delivery_window: "AM" | "PM";
                                 requested_delivery_time: string | null;
+                                requested_time_start: string | null;
+                                requested_time_end: string | null;
                                 patient_name: string;
                                 address: string;
                                 phone_number: string;
+                                latitude: number | null;
+                                longitude: number | null;
                                 authorized_recipient: string | null;
                                 amount_due: number | null;
                                 /** @enum {string} */
@@ -1844,9 +2150,13 @@ export interface paths {
                                 /** @enum {string} */
                                 delivery_window: "AM" | "PM";
                                 requested_delivery_time: string | null;
+                                requested_time_start: string | null;
+                                requested_time_end: string | null;
                                 patient_name: string;
                                 address: string;
                                 phone_number: string;
+                                latitude: number | null;
+                                longitude: number | null;
                                 authorized_recipient: string | null;
                                 amount_due: number | null;
                                 /** @enum {string} */
@@ -1964,6 +2274,71 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/driver/queue/eta": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Traffic-aware arrival times for the remaining stops
+         * @description Measures the chain the queue is already in: pharmacy to the first stop, then stop to stop. Includes a fixed allowance for time at each door, so finish_time is when the driver is done rather than when they last arrive. Returns degraded: true and no stops when the provider is unavailable — never an invented number.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        date?: string;
+                        current_location?: {
+                            latitude: number;
+                            longitude: number;
+                        };
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            departure_time: string;
+                            /** @enum {string} */
+                            origin: "pharmacy" | "driver";
+                            stops: {
+                                /** Format: uuid */
+                                order_id: string;
+                                duration_seconds: number;
+                                distance_meters: number;
+                                arrival_time: string;
+                            }[];
+                            total_duration_seconds: number;
+                            total_distance_meters: number;
+                            finish_time: string;
+                            unestimated_order_ids: string[];
+                            degraded: boolean;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/driver/queue/sequence": {
         parameters: {
             query?: never;
@@ -2017,9 +2392,13 @@ export interface paths {
                                 /** @enum {string} */
                                 delivery_window: "AM" | "PM";
                                 requested_delivery_time: string | null;
+                                requested_time_start: string | null;
+                                requested_time_end: string | null;
                                 patient_name: string;
                                 address: string;
                                 phone_number: string;
+                                latitude: number | null;
+                                longitude: number | null;
                                 authorized_recipient: string | null;
                                 amount_due: number | null;
                                 /** @enum {string} */
@@ -2181,9 +2560,13 @@ export interface paths {
                             /** @enum {string} */
                             delivery_window: "AM" | "PM";
                             requested_delivery_time: string | null;
+                            requested_time_start: string | null;
+                            requested_time_end: string | null;
                             patient_name: string;
                             address: string;
                             phone_number: string;
+                            latitude: number | null;
+                            longitude: number | null;
                             authorized_recipient: string | null;
                             amount_due: number | null;
                             /** @enum {string} */
@@ -2285,9 +2668,13 @@ export interface paths {
                             /** @enum {string} */
                             delivery_window: "AM" | "PM";
                             requested_delivery_time: string | null;
+                            requested_time_start: string | null;
+                            requested_time_end: string | null;
                             patient_name: string;
                             address: string;
                             phone_number: string;
+                            latitude: number | null;
+                            longitude: number | null;
                             authorized_recipient: string | null;
                             amount_due: number | null;
                             /** @enum {string} */
@@ -2387,9 +2774,13 @@ export interface paths {
                             /** @enum {string} */
                             delivery_window: "AM" | "PM";
                             requested_delivery_time: string | null;
+                            requested_time_start: string | null;
+                            requested_time_end: string | null;
                             patient_name: string;
                             address: string;
                             phone_number: string;
+                            latitude: number | null;
+                            longitude: number | null;
                             authorized_recipient: string | null;
                             amount_due: number | null;
                             /** @enum {string} */
@@ -2478,9 +2869,13 @@ export interface paths {
                             /** @enum {string} */
                             delivery_window: "AM" | "PM";
                             requested_delivery_time: string | null;
+                            requested_time_start: string | null;
+                            requested_time_end: string | null;
                             patient_name: string;
                             address: string;
                             phone_number: string;
+                            latitude: number | null;
+                            longitude: number | null;
                             authorized_recipient: string | null;
                             amount_due: number | null;
                             /** @enum {string} */
@@ -2643,9 +3038,13 @@ export interface paths {
                             /** @enum {string} */
                             delivery_window: "AM" | "PM";
                             requested_delivery_time: string | null;
+                            requested_time_start: string | null;
+                            requested_time_end: string | null;
                             patient_name: string;
                             address: string;
                             phone_number: string;
+                            latitude: number | null;
+                            longitude: number | null;
                             authorized_recipient: string | null;
                             amount_due: number | null;
                             /** @enum {string} */
@@ -2743,9 +3142,13 @@ export interface paths {
                                 /** @enum {string} */
                                 delivery_window: "AM" | "PM";
                                 requested_delivery_time: string | null;
+                                requested_time_start: string | null;
+                                requested_time_end: string | null;
                                 patient_name: string;
                                 address: string;
                                 phone_number: string;
+                                latitude: number | null;
+                                longitude: number | null;
                                 authorized_recipient: string | null;
                                 amount_due: number | null;
                                 /** @enum {string} */
@@ -2844,9 +3247,13 @@ export interface paths {
                             /** @enum {string} */
                             delivery_window: "AM" | "PM";
                             requested_delivery_time: string | null;
+                            requested_time_start: string | null;
+                            requested_time_end: string | null;
                             patient_name: string;
                             address: string;
                             phone_number: string;
+                            latitude: number | null;
+                            longitude: number | null;
                             authorized_recipient: string | null;
                             amount_due: number | null;
                             /** @enum {string} */

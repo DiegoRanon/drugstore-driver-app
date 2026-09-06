@@ -48,6 +48,21 @@ export type QueueTotals = QueueResponse['totals'];
 export type Estimate = NonNullable<QueueResponse['estimates']>[number];
 
 /**
+ * Traffic-aware arrival times for the rest of the run.
+ *
+ * Distinct from `Estimate` above, which is a by-product of an optimize call
+ * and describes the route that was *solved*. This one is asked for on its own
+ * and describes the route as it *stands*: measured against predicted traffic,
+ * re-measured whenever a stop leaves the list, and carrying the clock time
+ * the driver actually reads.
+ */
+export type RouteEta =
+  paths['/v1/driver/queue/eta']['post']['responses'][200]['content']['application/json'];
+export type EtaStop = RouteEta['stops'][number];
+export type EtaBody =
+  paths['/v1/driver/queue/eta']['post']['requestBody']['content']['application/json'];
+
+/**
  * One row of the day's run, exactly as the server serializes it.
  *
  * This is a *union*, not a struct with optional fields, and that is the whole

@@ -10,27 +10,60 @@ import {
   PriorityBadge,
   SelectBox,
   SequenceBadge,
+  TravelChip,
   WindowChip,
 } from '@/components/driver/badges';
 import { GlassPanel } from '@/components/glass/glass-panel';
-import type { ActiveStop, TerminalStatus, TerminalStop } from '@/api/types';
+import type {
+  ActiveStop,
+  Estimate,
+  EtaStop,
+  TerminalStatus,
+  TerminalStop,
+} from '@/api/types';
 import { useTheme } from '@/design/theme';
 import { MonoFont, Radius, Space, Type } from '@/design/tokens';
-import { clock, elapsedLabel, orderRef } from '@/lib/format';
+import { clock, distance, duration, elapsedLabel, orderRef, timeRange } from '@/lib/format';
 
 /**
  * The card is scanned, not read (PRD §7).
  *
- * Modelled on the Mobilus card, minus two things it shows and we cannot: there
- * is no straight-line distance and no per-stop ETA, because the API exposes no
- * coordinates for a stop and the optimizer returns sequence only. The freed
- * real estate goes to the window chip and the delay counter, which are the two
- * signals we do have and which a driver triages by.
+ * Modelled on the Mobilus card. Distance and travel time appear when the
+ * route optimizer measured them — an active stop now carries coordinates, so
+ * both are real numbers off the solved route rather than straight-line guesses
+ * — and are simply absent otherwise, because an invented kilometre reading is
+ * one a driver would turn the wheel on.
+ *
+ * The window chip and the delay counter still carry the triage weight, since
+ * they are present on every card and the estimates are not.
  */
 
 type OrderCardProps = {
   stop: ActiveStop;
   locale: 'fr' | 'en';
+  /** Travel from the previous stop, when the optimizer could measure it. */
+  estimate?: Estimate;
+  /**
+   * This stop's slice of the traffic-aware run estimate: how long the drive
+   * to it takes, and what time the driver gets there.
+   *
+   * Deliberately separate from `estimate`: that one is a leg length measured
+   * during an optimize call, this is the live chain the driver is actually
+   * on — re-measured every time a stop leaves the run.
+   */
+  eta?: EtaStop | null;
+  /**
+   * The number badge to show, when it should differ from `stop.sequence_number`.
+   *
+   * The server's number is the route's absolute position and is only rewritten
+   * by another optimize or manual-sequence call — neither of which fires just
+   * because a driver finished a stop. Left alone, a completed #1 leaves the
+   * remaining cards reading 2, 3, 4… forever, which reads as broken even
+   * though the route itself is untouched. The caller instead recomputes a
+   * gap-free position from the stops still on screen and passes it here; the
+   * server's own number is never mutated to get it.
+   */
+  position?: number | null;
   labels: {
     cooler: string;
     priority: string;
@@ -38,6 +71,8 @@ type OrderCardProps = {
     packages: string;
     /** Screen-reader prefix, e.g. "Delivery for". */
     accessibilityPrefix: string;
+    /** Formats the predicted arrival, e.g. "Arrivée ~14:20". */
+    arriveAt?: (time: string) => string;
   };
   selectable?: boolean;
   selected?: boolean;
@@ -48,6 +83,9 @@ type OrderCardProps = {
 export function OrderCard({
   stop,
   locale,
+  estimate,
+  eta,
+  position,
   labels,
   selectable = false,
   selected = false,
@@ -57,6 +95,45 @@ export function OrderCard({
   const theme = useTheme();
   const delay = elapsedLabel(stop.picked_up_at);
   const owes = stop.amount_due !== null && stop.amount_due > 0;
+  // Falls back to the server's own number so screens that never recompute a
+  // gap-free position (Ready, the design gallery) render exactly as before.
+  const displayPosition = position !== undefined ? position : stop.sequence_number;
+
+  /*
+    Distance and time are one chip, not two: they answer the same question and
+    two chips would push the badges that only appear when something is *wrong*
+    — money owed, cooler bag — onto a second line.
+  */
+  const travel = [
+    distance(estimate?.distance_meters ?? null, locale),
+    duration(estimate?.duration_seconds ?? null),
+  ]
+    .filter(Boolean)
+    .join(' · ');
+
+  /*
+    The promised interval wins over the single promised time when both exist:
+    it is the more specific commitment, and it is what the optimizer routed to.
+  */
+  const promised =
+    timeRange(stop.requested_time_start, stop.requested_time_end) ??
+    stop.requested_delivery_time;
+
+  const arrivalClock = eta ? clock(eta.arrival_time, locale) : null;
+  const arrival =
+    arrivalClock && labels.arriveAt ? labels.arriveAt(arrivalClock) : arrivalClock;
+
+  /*
+    How long the drive to *this* stop takes, from the live run estimate.
+
+    It takes the slot the "in the van for 4 h 24" counter used to hold. That
+    counter is the same number on every card of a run picked up together, so
+    it told a driver scanning the list nothing about which stop to think about
+    next; the leg duration differs per card and is the thing they are actually
+    deciding on. The elapsed counter stays as the fallback for a stop with no
+    estimate, where it is still the only timing signal there is.
+  */
+  const legDuration = eta ? duration(eta.duration_seconds) : null;
 
   return (
     <Pressable
@@ -75,9 +152,9 @@ export function OrderCard({
               <SelectBox selected={selected} />
             </View>
           ) : null}
-          {!selectable && stop.sequence_number !== null ? (
+          {!selectable && displayPosition !== null ? (
             <View style={styles.lead}>
-              <SequenceBadge value={stop.sequence_number} active={stop.sequence_number === 1} />
+              <SequenceBadge value={displayPosition} active={displayPosition === 1} />
             </View>
           ) : null}
 
@@ -105,8 +182,17 @@ export function OrderCard({
               most-scanned thing on the card (PRD §5.2) and a driver reading a
               bare "14:30" has lost the half-day it belongs to.
             */}
-            {stop.requested_delivery_time ? (
-              <DelayChip label={stop.requested_delivery_time} />
+            {promised ? <DelayChip label={promised} /> : null}
+            {/*
+              The predicted arrival outranks the raw leg length when both are
+              present: "arrive around 14:20" is what a driver checks against
+              the window promised to the patient, whereas "8 min" only says
+              how far the last stop was.
+            */}
+            {arrival ? (
+              <TravelChip label={arrival} />
+            ) : travel ? (
+              <TravelChip label={travel} />
             ) : null}
             {owes ? (
               <MoneyBadge
@@ -119,7 +205,11 @@ export function OrderCard({
             {stop.package_count > 1 ? (
               <PackageBadge count={stop.package_count} label={labels.packages} />
             ) : null}
-            {delay ? <DelayChip label={delay} /> : null}
+            {legDuration ? (
+              <DelayChip label={legDuration} />
+            ) : delay ? (
+              <DelayChip label={delay} />
+            ) : null}
           </View>
           <Text style={[styles.ref, { color: theme.ink.tertiary }]}>{orderRef(stop.id)}</Text>
         </View>

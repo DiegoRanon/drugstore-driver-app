@@ -17,6 +17,7 @@ import {
   isReturnStop,
   isTerminalStop,
   type ActiveStop,
+  type Estimate,
   type Pharmacy,
   type QueueResponse,
   type QueueTotals,
@@ -102,6 +103,16 @@ export type QueueSlices = {
   done: TerminalStop[];
   totals: QueueTotals | null;
   pharmacy: Pharmacy | null;
+  /**
+   * Travel to each stop, by order id, when the optimizer could measure it.
+   *
+   * A map rather than the array the server sends, because every consumer is
+   * asking "what about this stop" while rendering a card. Empty when the
+   * response carried no estimates at all — which is the normal case, since
+   * `estimates` only ever arrives on an optimize response and only when the
+   * provider can measure as well as order.
+   */
+  estimates: ReadonlyMap<string, Estimate>;
   counts: Record<QueueTab, number>;
 };
 
@@ -112,6 +123,7 @@ const EMPTY: QueueSlices = {
   done: [],
   totals: null,
   pharmacy: null,
+  estimates: new Map(),
   counts: { ready: 0, on_the_way: 0, to_hand_back: 0, done: 0 },
 };
 
@@ -154,6 +166,10 @@ export function splitQueue(queue: QueueResponse | undefined): QueueSlices {
     done,
     totals: queue.totals,
     pharmacy: queue.pharmacy,
+    // Indexed, not reordered. Estimates describe the route the server already
+    // chose; using them to sort here is the one thing this function must not
+    // do (PRD §3.1).
+    estimates: new Map((queue.estimates ?? []).map((e) => [e.order_id, e])),
     counts: {
       ready: ready.length,
       on_the_way: onTheWay.length,

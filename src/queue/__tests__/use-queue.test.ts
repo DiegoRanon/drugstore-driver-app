@@ -14,6 +14,7 @@
 import { splitQueue } from '../use-queue';
 import {
   activeStop,
+  estimate,
   queue,
   returnStop,
   terminalStop,
@@ -104,6 +105,37 @@ describe('splitQueue', () => {
       'first',
       'second',
     ]);
+  });
+
+  it('indexes the optimizer estimates without touching the order', () => {
+    const slices = splitQueue(
+      queue({
+        stops: [
+          activeStop({ id: 'far', status: 'picked_up', sequence_number: 1 }),
+          activeStop({ id: 'near', status: 'picked_up', sequence_number: 2 }),
+        ],
+        estimates: [
+          estimate({ order_id: 'far', distance_meters: 9000, duration_seconds: 900 }),
+          estimate({ order_id: 'near', distance_meters: 400, duration_seconds: 90 }),
+        ],
+      }),
+    );
+
+    expect(slices.estimates.get('far')?.distance_meters).toBe(9000);
+    expect(slices.estimates.get('near')?.distance_meters).toBe(400);
+
+    // The nearer stop is second and stays second. Distance is shown to the
+    // driver, never obeyed — sorting by it here would disagree with the
+    // dashboard and with the sequence the server persisted (PRD §3.1).
+    expect(slices.onTheWay.map((stop) => stop.id)).toEqual(['far', 'near']);
+  });
+
+  it('has an empty estimate index when the response carried none', () => {
+    // The ordinary case: `estimates` only ever arrives on an optimize
+    // response, and only when the provider can measure as well as order.
+    const slices = splitQueue(queue({ stops: [activeStop({ status: 'picked_up' })] }));
+
+    expect(slices.estimates.size).toBe(0);
   });
 
   it('counts each tab for the badges', () => {

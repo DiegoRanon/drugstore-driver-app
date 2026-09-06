@@ -18,6 +18,7 @@ import type {
   BatchHandoverBody,
   BatchHandoverResponse,
   CoolerCheckBody,
+  EtaBody,
   LoginBody,
   LoginResponse,
   MarkReadBody,
@@ -34,6 +35,7 @@ import type {
   RegisterDriverBody,
   RegisterDriverResponse,
   ReturnBody,
+  RouteEta,
   SequenceBody,
 } from './types';
 import {
@@ -413,6 +415,23 @@ export function optimizeQueue(body: OptimizeBody = {}): Promise<OptimizeResponse
     body,
     idempotencyKey: newIdempotencyKey('optimize'),
   });
+}
+
+/**
+ * When the driver reaches each remaining stop, and when the run is done.
+ *
+ * A read, despite the POST — it writes nothing, and the verb is here because
+ * the body carries the driver's position when there is one. It costs a Routes
+ * API call, so it is asked for deliberately: on opening the screen and after
+ * each delivery or return, never on the queue poll.
+ *
+ * Never fails over a provider outage. A degraded response is a success with
+ * `degraded: true` and no stops, which the UI renders as nothing at all —
+ * a driver plans an afternoon around this number, so a wrong one is worse
+ * than none.
+ */
+export function getRouteEta(body: EtaBody = {}): Promise<RouteEta> {
+  return request<RouteEta>('/v1/driver/queue/eta', { method: 'POST', body });
 }
 
 /* -------------------------------------------------------------------------- */

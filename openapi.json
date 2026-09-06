@@ -757,6 +757,22 @@
                           "phone_number": {
                             "type": "string"
                           },
+                          "place_id": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "formatted_address": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "latitude": {
+                            "type": "number",
+                            "nullable": true
+                          },
+                          "longitude": {
+                            "type": "number",
+                            "nullable": true
+                          },
                           "notes": {
                             "type": "string",
                             "nullable": true
@@ -779,6 +795,10 @@
                           "name",
                           "address",
                           "phone_number",
+                          "place_id",
+                          "formatted_address",
+                          "latitude",
+                          "longitude",
                           "notes",
                           "is_active",
                           "created_at",
@@ -834,6 +854,30 @@
                     "minLength": 1,
                     "maxLength": 50
                   },
+                  "place_id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 255,
+                    "nullable": true
+                  },
+                  "formatted_address": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 500,
+                    "nullable": true
+                  },
+                  "latitude": {
+                    "type": "number",
+                    "minimum": -90,
+                    "maximum": 90,
+                    "nullable": true
+                  },
+                  "longitude": {
+                    "type": "number",
+                    "minimum": -180,
+                    "maximum": 180,
+                    "nullable": true
+                  },
                   "notes": {
                     "type": "string",
                     "maxLength": 500,
@@ -871,6 +915,22 @@
                     "phone_number": {
                       "type": "string"
                     },
+                    "place_id": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "formatted_address": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "latitude": {
+                      "type": "number",
+                      "nullable": true
+                    },
+                    "longitude": {
+                      "type": "number",
+                      "nullable": true
+                    },
                     "notes": {
                       "type": "string",
                       "nullable": true
@@ -893,6 +953,10 @@
                     "name",
                     "address",
                     "phone_number",
+                    "place_id",
+                    "formatted_address",
+                    "latitude",
+                    "longitude",
                     "notes",
                     "is_active",
                     "created_at",
@@ -944,6 +1008,22 @@
                     "phone_number": {
                       "type": "string"
                     },
+                    "place_id": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "formatted_address": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "latitude": {
+                      "type": "number",
+                      "nullable": true
+                    },
+                    "longitude": {
+                      "type": "number",
+                      "nullable": true
+                    },
                     "notes": {
                       "type": "string",
                       "nullable": true
@@ -966,6 +1046,10 @@
                     "name",
                     "address",
                     "phone_number",
+                    "place_id",
+                    "formatted_address",
+                    "latitude",
+                    "longitude",
                     "notes",
                     "is_active",
                     "created_at",
@@ -1004,6 +1088,30 @@
                     "type": "string",
                     "minLength": 1,
                     "maxLength": 50
+                  },
+                  "place_id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 255,
+                    "nullable": true
+                  },
+                  "formatted_address": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 500,
+                    "nullable": true
+                  },
+                  "latitude": {
+                    "type": "number",
+                    "minimum": -90,
+                    "maximum": 90,
+                    "nullable": true
+                  },
+                  "longitude": {
+                    "type": "number",
+                    "minimum": -180,
+                    "maximum": 180,
+                    "nullable": true
                   },
                   "notes": {
                     "type": "string",
@@ -1051,6 +1159,22 @@
                     "phone_number": {
                       "type": "string"
                     },
+                    "place_id": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "formatted_address": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "latitude": {
+                      "type": "number",
+                      "nullable": true
+                    },
+                    "longitude": {
+                      "type": "number",
+                      "nullable": true
+                    },
                     "notes": {
                       "type": "string",
                       "nullable": true
@@ -1073,6 +1197,10 @@
                     "name",
                     "address",
                     "phone_number",
+                    "place_id",
+                    "formatted_address",
+                    "latitude",
+                    "longitude",
                     "notes",
                     "is_active",
                     "created_at",
@@ -1162,6 +1290,30 @@
                     "maxLength": 255,
                     "nullable": true
                   },
+                  "place_id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 255,
+                    "nullable": true
+                  },
+                  "formatted_address": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 500,
+                    "nullable": true
+                  },
+                  "latitude": {
+                    "type": "number",
+                    "minimum": -90,
+                    "maximum": 90,
+                    "nullable": true
+                  },
+                  "longitude": {
+                    "type": "number",
+                    "minimum": -180,
+                    "maximum": 180,
+                    "nullable": true
+                  },
                   "delivery_date": {
                     "type": "string",
                     "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
@@ -1174,6 +1326,16 @@
                     ]
                   },
                   "requested_delivery_time": {
+                    "type": "string",
+                    "pattern": "^([01]\\d|2[0-3]):[0-5]\\d(:[0-5]\\d)?$",
+                    "nullable": true
+                  },
+                  "requested_time_start": {
+                    "type": "string",
+                    "pattern": "^([01]\\d|2[0-3]):[0-5]\\d(:[0-5]\\d)?$",
+                    "nullable": true
+                  },
+                  "requested_time_end": {
                     "type": "string",
                     "pattern": "^([01]\\d|2[0-3]):[0-5]\\d(:[0-5]\\d)?$",
                     "nullable": true
@@ -1269,6 +1431,22 @@
                       "type": "string",
                       "nullable": true
                     },
+                    "place_id": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "formatted_address": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "latitude": {
+                      "type": "number",
+                      "nullable": true
+                    },
+                    "longitude": {
+                      "type": "number",
+                      "nullable": true
+                    },
                     "delivery_date": {
                       "type": "string"
                     },
@@ -1280,6 +1458,14 @@
                       ]
                     },
                     "requested_delivery_time": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "requested_time_start": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "requested_time_end": {
                       "type": "string",
                       "nullable": true
                     },
@@ -1442,9 +1628,15 @@
                     "address",
                     "phone_number",
                     "authorized_recipient",
+                    "place_id",
+                    "formatted_address",
+                    "latitude",
+                    "longitude",
                     "delivery_date",
                     "delivery_window",
                     "requested_delivery_time",
+                    "requested_time_start",
+                    "requested_time_end",
                     "status",
                     "is_priority",
                     "sequence_number",
@@ -1626,6 +1818,22 @@
                             "type": "string",
                             "nullable": true
                           },
+                          "place_id": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "formatted_address": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "latitude": {
+                            "type": "number",
+                            "nullable": true
+                          },
+                          "longitude": {
+                            "type": "number",
+                            "nullable": true
+                          },
                           "delivery_date": {
                             "type": "string"
                           },
@@ -1637,6 +1845,14 @@
                             ]
                           },
                           "requested_delivery_time": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "requested_time_start": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "requested_time_end": {
                             "type": "string",
                             "nullable": true
                           },
@@ -1799,9 +2015,15 @@
                           "address",
                           "phone_number",
                           "authorized_recipient",
+                          "place_id",
+                          "formatted_address",
+                          "latitude",
+                          "longitude",
                           "delivery_date",
                           "delivery_window",
                           "requested_delivery_time",
+                          "requested_time_start",
+                          "requested_time_end",
                           "status",
                           "is_priority",
                           "sequence_number",
@@ -1843,6 +2065,389 @@
                     "data",
                     "next_cursor",
                     "has_more"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/orders/route/optimize": {
+      "post": {
+        "summary": "Optimize and persist a driver's stop order for a day",
+        "tags": [
+          "orders"
+        ],
+        "description": "Writes sequence_number for every active stop assigned to the driver on that date. A provider failure keeps the previous order and returns degraded: true rather than an error. Stops without coordinates are appended and listed in unroutable_order_ids.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "date": {
+                    "type": "string",
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+                  },
+                  "driver_id": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "time_range": {
+                    "type": "object",
+                    "properties": {
+                      "start": {
+                        "type": "string",
+                        "pattern": "^([01]\\d|2[0-3]):[0-5]\\d(:[0-5]\\d)?$"
+                      },
+                      "end": {
+                        "type": "string",
+                        "pattern": "^([01]\\d|2[0-3]):[0-5]\\d(:[0-5]\\d)?$"
+                      }
+                    },
+                    "required": [
+                      "start",
+                      "end"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "date",
+                  "driver_id"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "date": {
+                      "type": "string"
+                    },
+                    "driver_id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "orders": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "client_id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "driver_id": {
+                            "type": "string",
+                            "format": "uuid",
+                            "nullable": true
+                          },
+                          "patient_name": {
+                            "type": "string"
+                          },
+                          "address": {
+                            "type": "string"
+                          },
+                          "phone_number": {
+                            "type": "string"
+                          },
+                          "authorized_recipient": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "place_id": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "formatted_address": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "latitude": {
+                            "type": "number",
+                            "nullable": true
+                          },
+                          "longitude": {
+                            "type": "number",
+                            "nullable": true
+                          },
+                          "delivery_date": {
+                            "type": "string"
+                          },
+                          "delivery_window": {
+                            "type": "string",
+                            "enum": [
+                              "AM",
+                              "PM"
+                            ]
+                          },
+                          "requested_delivery_time": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "requested_time_start": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "requested_time_end": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "scheduled",
+                              "in_pharmacy",
+                              "picked_up",
+                              "completed",
+                              "returned",
+                              "returned_to_pharmacy",
+                              "cancelled"
+                            ]
+                          },
+                          "is_priority": {
+                            "type": "boolean"
+                          },
+                          "sequence_number": {
+                            "type": "number",
+                            "nullable": true
+                          },
+                          "payment_status": {
+                            "type": "string",
+                            "enum": [
+                              "paid",
+                              "unpaid"
+                            ]
+                          },
+                          "payment_collected": {
+                            "type": "boolean"
+                          },
+                          "payment_method": {
+                            "type": "string",
+                            "enum": [
+                              "cash",
+                              "card"
+                            ],
+                            "nullable": true
+                          },
+                          "amount_due": {
+                            "type": "number",
+                            "nullable": true
+                          },
+                          "amount_collected": {
+                            "type": "number",
+                            "nullable": true
+                          },
+                          "payment_exception": {
+                            "type": "string",
+                            "enum": [
+                              "waived_by_pharmacy",
+                              "deferred_to_pharmacy"
+                            ],
+                            "nullable": true
+                          },
+                          "payment_exception_note": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "failure_reason": {
+                            "type": "string",
+                            "enum": [
+                              "customer_absent",
+                              "customer_refused",
+                              "wrong_address",
+                              "payment_refused",
+                              "other"
+                            ],
+                            "nullable": true
+                          },
+                          "failure_note": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "requires_cooler_bag": {
+                            "type": "boolean"
+                          },
+                          "cooler_bag_confirmed": {
+                            "type": "boolean",
+                            "nullable": true
+                          },
+                          "packages": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "string",
+                                  "format": "uuid"
+                                },
+                                "label_code": {
+                                  "type": "string"
+                                },
+                                "package_type": {
+                                  "type": "string",
+                                  "enum": [
+                                    "bag",
+                                    "cooler",
+                                    "tote",
+                                    "envelope"
+                                  ]
+                                },
+                                "position": {
+                                  "type": "number"
+                                }
+                              },
+                              "required": [
+                                "id",
+                                "label_code",
+                                "package_type",
+                                "position"
+                              ],
+                              "additionalProperties": false
+                            }
+                          },
+                          "package_count": {
+                            "type": "number"
+                          },
+                          "pickup_package_count": {
+                            "type": "number",
+                            "nullable": true
+                          },
+                          "ready_at": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "picked_up_at": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "completed_at": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "returned_at": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "returned_to_pharmacy_at": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "cancelled_at": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "created_at": {
+                            "type": "string"
+                          },
+                          "updated_at": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "client_id",
+                          "driver_id",
+                          "patient_name",
+                          "address",
+                          "phone_number",
+                          "authorized_recipient",
+                          "place_id",
+                          "formatted_address",
+                          "latitude",
+                          "longitude",
+                          "delivery_date",
+                          "delivery_window",
+                          "requested_delivery_time",
+                          "requested_time_start",
+                          "requested_time_end",
+                          "status",
+                          "is_priority",
+                          "sequence_number",
+                          "payment_status",
+                          "payment_collected",
+                          "payment_method",
+                          "amount_due",
+                          "amount_collected",
+                          "payment_exception",
+                          "payment_exception_note",
+                          "failure_reason",
+                          "failure_note",
+                          "requires_cooler_bag",
+                          "cooler_bag_confirmed",
+                          "packages",
+                          "package_count",
+                          "pickup_package_count",
+                          "ready_at",
+                          "picked_up_at",
+                          "completed_at",
+                          "returned_at",
+                          "returned_to_pharmacy_at",
+                          "cancelled_at",
+                          "created_at",
+                          "updated_at"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "degraded": {
+                      "type": "boolean"
+                    },
+                    "estimates": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "order_id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "distance_meters": {
+                            "type": "number",
+                            "nullable": true
+                          },
+                          "duration_seconds": {
+                            "type": "number",
+                            "nullable": true
+                          }
+                        },
+                        "required": [
+                          "order_id",
+                          "distance_meters",
+                          "duration_seconds"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "unroutable_order_ids": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "format": "uuid"
+                      }
+                    }
+                  },
+                  "required": [
+                    "date",
+                    "driver_id",
+                    "orders",
+                    "degraded",
+                    "unroutable_order_ids"
                   ],
                   "additionalProperties": false
                 }
@@ -2014,6 +2619,22 @@
                       "type": "string",
                       "nullable": true
                     },
+                    "place_id": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "formatted_address": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "latitude": {
+                      "type": "number",
+                      "nullable": true
+                    },
+                    "longitude": {
+                      "type": "number",
+                      "nullable": true
+                    },
                     "delivery_date": {
                       "type": "string"
                     },
@@ -2025,6 +2646,14 @@
                       ]
                     },
                     "requested_delivery_time": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "requested_time_start": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "requested_time_end": {
                       "type": "string",
                       "nullable": true
                     },
@@ -2235,9 +2864,15 @@
                     "address",
                     "phone_number",
                     "authorized_recipient",
+                    "place_id",
+                    "formatted_address",
+                    "latitude",
+                    "longitude",
                     "delivery_date",
                     "delivery_window",
                     "requested_delivery_time",
+                    "requested_time_start",
+                    "requested_time_end",
                     "status",
                     "is_priority",
                     "sequence_number",
@@ -2306,6 +2941,30 @@
                     "maxLength": 255,
                     "nullable": true
                   },
+                  "place_id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 255,
+                    "nullable": true
+                  },
+                  "formatted_address": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 500,
+                    "nullable": true
+                  },
+                  "latitude": {
+                    "type": "number",
+                    "minimum": -90,
+                    "maximum": 90,
+                    "nullable": true
+                  },
+                  "longitude": {
+                    "type": "number",
+                    "minimum": -180,
+                    "maximum": 180,
+                    "nullable": true
+                  },
                   "delivery_date": {
                     "type": "string",
                     "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
@@ -2318,6 +2977,16 @@
                     ]
                   },
                   "requested_delivery_time": {
+                    "type": "string",
+                    "pattern": "^([01]\\d|2[0-3]):[0-5]\\d(:[0-5]\\d)?$",
+                    "nullable": true
+                  },
+                  "requested_time_start": {
+                    "type": "string",
+                    "pattern": "^([01]\\d|2[0-3]):[0-5]\\d(:[0-5]\\d)?$",
+                    "nullable": true
+                  },
+                  "requested_time_end": {
                     "type": "string",
                     "pattern": "^([01]\\d|2[0-3]):[0-5]\\d(:[0-5]\\d)?$",
                     "nullable": true
@@ -2419,6 +3088,22 @@
                       "type": "string",
                       "nullable": true
                     },
+                    "place_id": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "formatted_address": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "latitude": {
+                      "type": "number",
+                      "nullable": true
+                    },
+                    "longitude": {
+                      "type": "number",
+                      "nullable": true
+                    },
                     "delivery_date": {
                       "type": "string"
                     },
@@ -2430,6 +3115,14 @@
                       ]
                     },
                     "requested_delivery_time": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "requested_time_start": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "requested_time_end": {
                       "type": "string",
                       "nullable": true
                     },
@@ -2592,9 +3285,15 @@
                     "address",
                     "phone_number",
                     "authorized_recipient",
+                    "place_id",
+                    "formatted_address",
+                    "latitude",
+                    "longitude",
                     "delivery_date",
                     "delivery_window",
                     "requested_delivery_time",
+                    "requested_time_start",
+                    "requested_time_end",
                     "status",
                     "is_priority",
                     "sequence_number",
@@ -2681,6 +3380,22 @@
                       "type": "string",
                       "nullable": true
                     },
+                    "place_id": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "formatted_address": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "latitude": {
+                      "type": "number",
+                      "nullable": true
+                    },
+                    "longitude": {
+                      "type": "number",
+                      "nullable": true
+                    },
                     "delivery_date": {
                       "type": "string"
                     },
@@ -2692,6 +3407,14 @@
                       ]
                     },
                     "requested_delivery_time": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "requested_time_start": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "requested_time_end": {
                       "type": "string",
                       "nullable": true
                     },
@@ -2854,9 +3577,15 @@
                     "address",
                     "phone_number",
                     "authorized_recipient",
+                    "place_id",
+                    "formatted_address",
+                    "latitude",
+                    "longitude",
                     "delivery_date",
                     "delivery_window",
                     "requested_delivery_time",
+                    "requested_time_start",
+                    "requested_time_end",
                     "status",
                     "is_priority",
                     "sequence_number",
@@ -2963,6 +3692,22 @@
                       "type": "string",
                       "nullable": true
                     },
+                    "place_id": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "formatted_address": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "latitude": {
+                      "type": "number",
+                      "nullable": true
+                    },
+                    "longitude": {
+                      "type": "number",
+                      "nullable": true
+                    },
                     "delivery_date": {
                       "type": "string"
                     },
@@ -2974,6 +3719,14 @@
                       ]
                     },
                     "requested_delivery_time": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "requested_time_start": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "requested_time_end": {
                       "type": "string",
                       "nullable": true
                     },
@@ -3136,9 +3889,15 @@
                     "address",
                     "phone_number",
                     "authorized_recipient",
+                    "place_id",
+                    "formatted_address",
+                    "latitude",
+                    "longitude",
                     "delivery_date",
                     "delivery_window",
                     "requested_delivery_time",
+                    "requested_time_start",
+                    "requested_time_end",
                     "status",
                     "is_priority",
                     "sequence_number",
@@ -3243,6 +4002,22 @@
                       "type": "string",
                       "nullable": true
                     },
+                    "place_id": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "formatted_address": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "latitude": {
+                      "type": "number",
+                      "nullable": true
+                    },
+                    "longitude": {
+                      "type": "number",
+                      "nullable": true
+                    },
                     "delivery_date": {
                       "type": "string"
                     },
@@ -3254,6 +4029,14 @@
                       ]
                     },
                     "requested_delivery_time": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "requested_time_start": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "requested_time_end": {
                       "type": "string",
                       "nullable": true
                     },
@@ -3416,9 +4199,15 @@
                     "address",
                     "phone_number",
                     "authorized_recipient",
+                    "place_id",
+                    "formatted_address",
+                    "latitude",
+                    "longitude",
                     "delivery_date",
                     "delivery_window",
                     "requested_delivery_time",
+                    "requested_time_start",
+                    "requested_time_end",
                     "status",
                     "is_priority",
                     "sequence_number",
@@ -3504,6 +4293,22 @@
                       "type": "string",
                       "nullable": true
                     },
+                    "place_id": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "formatted_address": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "latitude": {
+                      "type": "number",
+                      "nullable": true
+                    },
+                    "longitude": {
+                      "type": "number",
+                      "nullable": true
+                    },
                     "delivery_date": {
                       "type": "string"
                     },
@@ -3515,6 +4320,14 @@
                       ]
                     },
                     "requested_delivery_time": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "requested_time_start": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "requested_time_end": {
                       "type": "string",
                       "nullable": true
                     },
@@ -3677,9 +4490,15 @@
                     "address",
                     "phone_number",
                     "authorized_recipient",
+                    "place_id",
+                    "formatted_address",
+                    "latitude",
+                    "longitude",
                     "delivery_date",
                     "delivery_window",
                     "requested_delivery_time",
+                    "requested_time_start",
+                    "requested_time_end",
                     "status",
                     "is_priority",
                     "sequence_number",
@@ -3705,6 +4524,142 @@
                     "cancelled_at",
                     "created_at",
                     "updated_at"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/places/autocomplete": {
+      "get": {
+        "summary": "Address suggestions for a partial input",
+        "tags": [
+          "places"
+        ],
+        "description": "Proxies the configured Places provider. Returns an empty list when the provider is unavailable, so an address can always still be typed by hand. Pass the same session_token for every keystroke of one address and for the resolve call that follows.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            },
+            "in": "query",
+            "name": "q",
+            "required": true
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "in": "query",
+            "name": "session_token",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "place_id": {
+                            "type": "string"
+                          },
+                          "primary_text": {
+                            "type": "string"
+                          },
+                          "secondary_text": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "place_id",
+                          "primary_text",
+                          "secondary_text"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/places/{place_id}": {
+      "get": {
+        "summary": "Resolve a chosen suggestion to an address and coordinates",
+        "tags": [
+          "places"
+        ],
+        "description": "Closes the autocomplete session. Unlike the suggestion endpoint this fails loudly, because it runs after a deliberate choice.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "in": "query",
+            "name": "session_token",
+            "required": true
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 255
+            },
+            "in": "path",
+            "name": "place_id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "place_id": {
+                      "type": "string"
+                    },
+                    "formatted_address": {
+                      "type": "string"
+                    },
+                    "latitude": {
+                      "type": "number"
+                    },
+                    "longitude": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "place_id",
+                    "formatted_address",
+                    "latitude",
+                    "longitude"
                   ],
                   "additionalProperties": false
                 }
@@ -4097,6 +5052,14 @@
                                 "type": "string",
                                 "nullable": true
                               },
+                              "requested_time_start": {
+                                "type": "string",
+                                "nullable": true
+                              },
+                              "requested_time_end": {
+                                "type": "string",
+                                "nullable": true
+                              },
                               "patient_name": {
                                 "type": "string"
                               },
@@ -4105,6 +5068,14 @@
                               },
                               "phone_number": {
                                 "type": "string"
+                              },
+                              "latitude": {
+                                "type": "number",
+                                "nullable": true
+                              },
+                              "longitude": {
+                                "type": "number",
+                                "nullable": true
                               },
                               "authorized_recipient": {
                                 "type": "string",
@@ -4177,9 +5148,13 @@
                               "delivery_date",
                               "delivery_window",
                               "requested_delivery_time",
+                              "requested_time_start",
+                              "requested_time_end",
                               "patient_name",
                               "address",
                               "phone_number",
+                              "latitude",
+                              "longitude",
                               "authorized_recipient",
                               "amount_due",
                               "payment_status",
@@ -4727,6 +5702,14 @@
                                 "type": "string",
                                 "nullable": true
                               },
+                              "requested_time_start": {
+                                "type": "string",
+                                "nullable": true
+                              },
+                              "requested_time_end": {
+                                "type": "string",
+                                "nullable": true
+                              },
                               "patient_name": {
                                 "type": "string"
                               },
@@ -4735,6 +5718,14 @@
                               },
                               "phone_number": {
                                 "type": "string"
+                              },
+                              "latitude": {
+                                "type": "number",
+                                "nullable": true
+                              },
+                              "longitude": {
+                                "type": "number",
+                                "nullable": true
                               },
                               "authorized_recipient": {
                                 "type": "string",
@@ -4807,9 +5798,13 @@
                               "delivery_date",
                               "delivery_window",
                               "requested_delivery_time",
+                              "requested_time_start",
+                              "requested_time_end",
                               "patient_name",
                               "address",
                               "phone_number",
+                              "latitude",
+                              "longitude",
                               "authorized_recipient",
                               "amount_due",
                               "payment_status",
@@ -5242,6 +6237,134 @@
         }
       }
     },
+    "/v1/driver/queue/eta": {
+      "post": {
+        "summary": "Traffic-aware arrival times for the remaining stops",
+        "tags": [
+          "driver"
+        ],
+        "description": "Measures the chain the queue is already in: pharmacy to the first stop, then stop to stop. Includes a fixed allowance for time at each door, so finish_time is when the driver is done rather than when they last arrive. Returns degraded: true and no stops when the provider is unavailable — never an invented number.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "date": {
+                    "type": "string",
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+                  },
+                  "current_location": {
+                    "type": "object",
+                    "properties": {
+                      "latitude": {
+                        "type": "number",
+                        "minimum": -90,
+                        "maximum": 90
+                      },
+                      "longitude": {
+                        "type": "number",
+                        "minimum": -180,
+                        "maximum": 180
+                      }
+                    },
+                    "required": [
+                      "latitude",
+                      "longitude"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "departure_time": {
+                      "type": "string"
+                    },
+                    "origin": {
+                      "type": "string",
+                      "enum": [
+                        "pharmacy",
+                        "driver"
+                      ]
+                    },
+                    "stops": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "order_id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "duration_seconds": {
+                            "type": "number"
+                          },
+                          "distance_meters": {
+                            "type": "number"
+                          },
+                          "arrival_time": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "order_id",
+                          "duration_seconds",
+                          "distance_meters",
+                          "arrival_time"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "total_duration_seconds": {
+                      "type": "number"
+                    },
+                    "total_distance_meters": {
+                      "type": "number"
+                    },
+                    "finish_time": {
+                      "type": "string"
+                    },
+                    "unestimated_order_ids": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "format": "uuid"
+                      }
+                    },
+                    "degraded": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "departure_time",
+                    "origin",
+                    "stops",
+                    "total_duration_seconds",
+                    "total_distance_meters",
+                    "finish_time",
+                    "unestimated_order_ids",
+                    "degraded"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/driver/queue/sequence": {
       "post": {
         "summary": "Set the stop order manually",
@@ -5350,6 +6473,14 @@
                                 "type": "string",
                                 "nullable": true
                               },
+                              "requested_time_start": {
+                                "type": "string",
+                                "nullable": true
+                              },
+                              "requested_time_end": {
+                                "type": "string",
+                                "nullable": true
+                              },
                               "patient_name": {
                                 "type": "string"
                               },
@@ -5358,6 +6489,14 @@
                               },
                               "phone_number": {
                                 "type": "string"
+                              },
+                              "latitude": {
+                                "type": "number",
+                                "nullable": true
+                              },
+                              "longitude": {
+                                "type": "number",
+                                "nullable": true
                               },
                               "authorized_recipient": {
                                 "type": "string",
@@ -5430,9 +6569,13 @@
                               "delivery_date",
                               "delivery_window",
                               "requested_delivery_time",
+                              "requested_time_start",
+                              "requested_time_end",
                               "patient_name",
                               "address",
                               "phone_number",
+                              "latitude",
+                              "longitude",
                               "authorized_recipient",
                               "amount_due",
                               "payment_status",
@@ -5942,6 +7085,14 @@
                           "type": "string",
                           "nullable": true
                         },
+                        "requested_time_start": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "requested_time_end": {
+                          "type": "string",
+                          "nullable": true
+                        },
                         "patient_name": {
                           "type": "string"
                         },
@@ -5950,6 +7101,14 @@
                         },
                         "phone_number": {
                           "type": "string"
+                        },
+                        "latitude": {
+                          "type": "number",
+                          "nullable": true
+                        },
+                        "longitude": {
+                          "type": "number",
+                          "nullable": true
                         },
                         "authorized_recipient": {
                           "type": "string",
@@ -6022,9 +7181,13 @@
                         "delivery_date",
                         "delivery_window",
                         "requested_delivery_time",
+                        "requested_time_start",
+                        "requested_time_end",
                         "patient_name",
                         "address",
                         "phone_number",
+                        "latitude",
+                        "longitude",
                         "authorized_recipient",
                         "amount_due",
                         "payment_status",
@@ -6256,6 +7419,14 @@
                           "type": "string",
                           "nullable": true
                         },
+                        "requested_time_start": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "requested_time_end": {
+                          "type": "string",
+                          "nullable": true
+                        },
                         "patient_name": {
                           "type": "string"
                         },
@@ -6264,6 +7435,14 @@
                         },
                         "phone_number": {
                           "type": "string"
+                        },
+                        "latitude": {
+                          "type": "number",
+                          "nullable": true
+                        },
+                        "longitude": {
+                          "type": "number",
+                          "nullable": true
                         },
                         "authorized_recipient": {
                           "type": "string",
@@ -6336,9 +7515,13 @@
                         "delivery_date",
                         "delivery_window",
                         "requested_delivery_time",
+                        "requested_time_start",
+                        "requested_time_end",
                         "patient_name",
                         "address",
                         "phone_number",
+                        "latitude",
+                        "longitude",
                         "authorized_recipient",
                         "amount_due",
                         "payment_status",
@@ -6555,6 +7738,14 @@
                           "type": "string",
                           "nullable": true
                         },
+                        "requested_time_start": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "requested_time_end": {
+                          "type": "string",
+                          "nullable": true
+                        },
                         "patient_name": {
                           "type": "string"
                         },
@@ -6563,6 +7754,14 @@
                         },
                         "phone_number": {
                           "type": "string"
+                        },
+                        "latitude": {
+                          "type": "number",
+                          "nullable": true
+                        },
+                        "longitude": {
+                          "type": "number",
+                          "nullable": true
                         },
                         "authorized_recipient": {
                           "type": "string",
@@ -6635,9 +7834,13 @@
                         "delivery_date",
                         "delivery_window",
                         "requested_delivery_time",
+                        "requested_time_start",
+                        "requested_time_end",
                         "patient_name",
                         "address",
                         "phone_number",
+                        "latitude",
+                        "longitude",
                         "authorized_recipient",
                         "amount_due",
                         "payment_status",
@@ -6823,6 +8026,14 @@
                           "type": "string",
                           "nullable": true
                         },
+                        "requested_time_start": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "requested_time_end": {
+                          "type": "string",
+                          "nullable": true
+                        },
                         "patient_name": {
                           "type": "string"
                         },
@@ -6831,6 +8042,14 @@
                         },
                         "phone_number": {
                           "type": "string"
+                        },
+                        "latitude": {
+                          "type": "number",
+                          "nullable": true
+                        },
+                        "longitude": {
+                          "type": "number",
+                          "nullable": true
                         },
                         "authorized_recipient": {
                           "type": "string",
@@ -6903,9 +8122,13 @@
                         "delivery_date",
                         "delivery_window",
                         "requested_delivery_time",
+                        "requested_time_start",
+                        "requested_time_end",
                         "patient_name",
                         "address",
                         "phone_number",
+                        "latitude",
+                        "longitude",
                         "authorized_recipient",
                         "amount_due",
                         "payment_status",
@@ -7275,6 +8498,14 @@
                           "type": "string",
                           "nullable": true
                         },
+                        "requested_time_start": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "requested_time_end": {
+                          "type": "string",
+                          "nullable": true
+                        },
                         "patient_name": {
                           "type": "string"
                         },
@@ -7283,6 +8514,14 @@
                         },
                         "phone_number": {
                           "type": "string"
+                        },
+                        "latitude": {
+                          "type": "number",
+                          "nullable": true
+                        },
+                        "longitude": {
+                          "type": "number",
+                          "nullable": true
                         },
                         "authorized_recipient": {
                           "type": "string",
@@ -7355,9 +8594,13 @@
                         "delivery_date",
                         "delivery_window",
                         "requested_delivery_time",
+                        "requested_time_start",
+                        "requested_time_end",
                         "patient_name",
                         "address",
                         "phone_number",
+                        "latitude",
+                        "longitude",
                         "authorized_recipient",
                         "amount_due",
                         "payment_status",
@@ -7575,6 +8818,14 @@
                               "type": "string",
                               "nullable": true
                             },
+                            "requested_time_start": {
+                              "type": "string",
+                              "nullable": true
+                            },
+                            "requested_time_end": {
+                              "type": "string",
+                              "nullable": true
+                            },
                             "patient_name": {
                               "type": "string"
                             },
@@ -7583,6 +8834,14 @@
                             },
                             "phone_number": {
                               "type": "string"
+                            },
+                            "latitude": {
+                              "type": "number",
+                              "nullable": true
+                            },
+                            "longitude": {
+                              "type": "number",
+                              "nullable": true
                             },
                             "authorized_recipient": {
                               "type": "string",
@@ -7655,9 +8914,13 @@
                             "delivery_date",
                             "delivery_window",
                             "requested_delivery_time",
+                            "requested_time_start",
+                            "requested_time_end",
                             "patient_name",
                             "address",
                             "phone_number",
+                            "latitude",
+                            "longitude",
                             "authorized_recipient",
                             "amount_due",
                             "payment_status",
@@ -7881,6 +9144,14 @@
                           "type": "string",
                           "nullable": true
                         },
+                        "requested_time_start": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "requested_time_end": {
+                          "type": "string",
+                          "nullable": true
+                        },
                         "patient_name": {
                           "type": "string"
                         },
@@ -7889,6 +9160,14 @@
                         },
                         "phone_number": {
                           "type": "string"
+                        },
+                        "latitude": {
+                          "type": "number",
+                          "nullable": true
+                        },
+                        "longitude": {
+                          "type": "number",
+                          "nullable": true
                         },
                         "authorized_recipient": {
                           "type": "string",
@@ -7961,9 +9240,13 @@
                         "delivery_date",
                         "delivery_window",
                         "requested_delivery_time",
+                        "requested_time_start",
+                        "requested_time_end",
                         "patient_name",
                         "address",
                         "phone_number",
+                        "latitude",
+                        "longitude",
                         "authorized_recipient",
                         "amount_due",
                         "payment_status",
@@ -8250,6 +9533,40 @@
   "security": [
     {
       "bearerAuth": []
+    }
+  ],
+  "tags": [
+    {
+      "name": "auth",
+      "description": "Sessions and account management"
+    },
+    {
+      "name": "clients",
+      "description": "Saved patients"
+    },
+    {
+      "name": "orders",
+      "description": "Admin order management and routing"
+    },
+    {
+      "name": "drivers",
+      "description": "Driver roster"
+    },
+    {
+      "name": "driver",
+      "description": "The driver app's own surface"
+    },
+    {
+      "name": "places",
+      "description": "Address standardization, brokered so provider credentials stay on the server"
+    },
+    {
+      "name": "invites",
+      "description": "Organization invite codes"
+    },
+    {
+      "name": "internal",
+      "description": "Operational endpoints"
     }
   ]
 }
