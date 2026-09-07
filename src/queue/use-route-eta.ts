@@ -12,11 +12,25 @@
  *   - the 30-second queue poll returning an unchanged run → *same key*, so
  *     nothing is fetched and no Routes API call is billed
  *
- * The optimistic cache is what makes this feel instant: `applyComplete`
- * removes the stop the moment the driver taps Delivered, so the key changes
- * before the server has answered and the new estimate is already in flight.
- * If the mutation then fails and rolls back, the key rolls back with it and
- * the previous estimate is served from cache.
+ * The optimistic cache is what changes the key instantly: `applyComplete`
+ * removes the stop the moment the driver taps Delivered. If the mutation then
+ * fails and rolls back, the key rolls back with it and the previous estimate
+ * is served from cache.
+ *
+ * WHY IT WAITS FOR THE WRITE TO LAND
+ *
+ * The key changing early is not licence to fetch early. `GET
+ * /v1/driver/queue/eta` measures the queue *the server* holds, not the stops
+ * passed here, so a request that overtakes the completion it was triggered by
+ * gets an estimate that still counts the delivered stop — and caches it under
+ * the new key. Nothing invalidates it afterwards, because the id list does not
+ * change a second time when the write finally lands, which is why the stale
+ * finish time used to survive until a manual refresh.
+ *
+ * So the query stays disabled while a queue write is in flight, the same way
+ * `useQueue` suspends its poll, and runs once the server has actually applied
+ * it. `placeholderData` keeps the previous estimate on screen throughout, so
+ * the banner never blinks out — it just updates a moment later than the list.
  *
  * WHY IT IS NOT PART OF THE QUEUE
  *
@@ -25,11 +39,12 @@
  * makes deliberately. Folding it into the poll would bill a traffic lookup
  * twice a minute per driver for an answer that mostly has not changed.
  */
-import { useQuery, type UseQueryResult } from '@tanstack/react-query';
+import { useIsMutating, useQuery, type UseQueryResult } from '@tanstack/react-query';
 import { useMemo } from 'react';
 
 import { getRouteEta } from '@/api/client';
 import type { ActiveStop, EtaStop, RouteEta } from '@/api/types';
+import { QUEUE_MUTATION_KEY } from '@/queue/use-queue';
 
 /**
  * Traffic moves even when the route does not. Re-measuring every five minutes
@@ -62,11 +77,19 @@ export type RouteEtaSlice = {
 export function useRouteEta(stops: ActiveStop[], date?: string): RouteEtaSlice {
   const orderedIds = useMemo(() => stops.map((stop) => stop.id), [stops]);
 
+  /*
+    A write in flight means the optimistic cache is ahead of the server. The
+    id list here already reflects the delivery; the queue the endpoint would
+    measure does not. Waiting costs a second of a stale banner and buys an
+    estimate that matches the run.
+  */
+  const writing = useIsMutating({ mutationKey: QUEUE_MUTATION_KEY });
+
   const query = useQuery({
     queryKey: routeEtaQueryKey(orderedIds),
     queryFn: () => getRouteEta({ date }),
     // Nothing to measure, and nothing worth spending a call on.
-    enabled: orderedIds.length > 0,
+    enabled: orderedIds.length > 0 && writing === 0,
     staleTime: ETA_STALE_MS,
     // The previous run's estimate while the new one loads, rather than a
     // banner that blinks out every time a stop is delivered.

@@ -6,10 +6,11 @@
  * keying too loosely leaves a stale finish time on screen after a delivery,
  * and keying too tightly bills a Routes API call on every thirty-second poll.
  */
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClient, QueryClientProvider, useMutation } from '@tanstack/react-query';
 import { renderHook, waitFor } from '@testing-library/react-native';
 
 import { useRouteEta, type RouteEtaSlice } from '../use-route-eta';
+import { QUEUE_MUTATION_KEY } from '../use-queue';
 import { activeStop } from '@/test-support/queue-fixtures';
 import type { ActiveStop, RouteEta } from '@/api/types';
 
@@ -189,5 +190,65 @@ describe('useRouteEta — what it reports', () => {
 
     await waitFor(() => expect(result.current.query.isSuccess).toBe(true));
     expect(result.current.summary).toBeNull();
+  });
+});
+
+describe('useRouteEta — while a write is in flight', () => {
+  /**
+   * The endpoint measures the queue the *server* holds. A request that
+   * overtakes the completion that triggered it comes back still counting the
+   * delivered stop, and caches that answer under the post-delivery key — where
+   * nothing invalidates it, because the id list never changes again. The
+   * symptom was a finish time that only corrected itself on a manual refresh.
+   */
+  it('does not measure until the queue write has landed', async () => {
+    let release: (() => void) | undefined;
+    const pending = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+
+    function useHarness(stops: ActiveStop[]) {
+      const mutation = useMutation({
+        mutationKey: QUEUE_MUTATION_KEY,
+        mutationFn: () => pending,
+      });
+      return { eta: useRouteEta(stops), mutation };
+    }
+
+    const { result, rerender } = renderHook<
+      ReturnType<typeof useHarness>,
+      { stops: ActiveStop[] }
+    >(({ stops }) => useHarness(stops), {
+      wrapper,
+      initialProps: { stops: [A, B] },
+    });
+
+    await waitFor(() => expect(mockGetRouteEta).toHaveBeenCalledTimes(1));
+
+    // The driver taps Delivered: the write starts, and the optimistic cache
+    // drops the stop, which is what changes the key here.
+    result.current.mutation.mutate();
+    await waitFor(() => expect(result.current.mutation.isPending).toBe(true));
+    rerender({ stops: [B] });
+
+    // The key has changed, but the server has not applied anything yet.
+    expect(mockGetRouteEta).toHaveBeenCalledTimes(1);
+
+    release?.();
+
+    await waitFor(() => expect(mockGetRouteEta).toHaveBeenCalledTimes(2));
+  });
+
+  it('keeps the previous estimate on screen while it waits', async () => {
+    const { result, rerender } = renderHook<RouteEtaSlice, { stops: ActiveStop[] }>(
+      ({ stops }) => useRouteEta(stops),
+      { wrapper, initialProps: { stops: [A, B] } },
+    );
+    await waitFor(() => expect(result.current.summary).not.toBeNull());
+
+    rerender({ stops: [B] });
+
+    // Never null between runs: a banner that blinks out reads as "no estimate".
+    expect(result.current.summary).not.toBeNull();
   });
 });

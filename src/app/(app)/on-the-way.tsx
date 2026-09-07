@@ -44,7 +44,9 @@ import { useRouteEta } from "@/queue/use-route-eta";
  * The estimate re-measures itself whenever the run changes shape. It is keyed
  * on the ordered stop ids, so delivering or returning a stop produces a new
  * key and a fresh measurement, while a poll that returns the same run costs
- * nothing — see `useRouteEta`.
+ * nothing. The measurement waits for the write to land before it goes out —
+ * the endpoint reads the server's queue, not the array below — so the banner
+ * updates a moment after the list rather than with it. See `useRouteEta`.
  *
  * This is also the screen that has to interrupt: an order added mid-shift is
  * only actionable if the driver learns about it while they are still out.
