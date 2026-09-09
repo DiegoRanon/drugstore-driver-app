@@ -252,3 +252,74 @@ describe('useRouteEta — while a write is in flight', () => {
     expect(result.current.summary).not.toBeNull();
   });
 });
+
+describe('useRouteEta — when the run is finished', () => {
+  /**
+   * The last delivery empties the van. `placeholderData` used to carry the
+   * previous estimate into that state, so the screen kept a finish time and a
+   * "48 min · 23 km" above "Aucune livraison en cours" — a number describing
+   * a run that no longer exists.
+   */
+  it('drops the estimate when the last stop is delivered', async () => {
+    const { result, rerender } = renderHook<RouteEtaSlice, { stops: ActiveStop[] }>(
+      ({ stops }) => useRouteEta(stops),
+      { wrapper, initialProps: { stops: [A, B] } },
+    );
+    await waitFor(() => expect(result.current.summary).not.toBeNull());
+
+    rerender({ stops: [] });
+
+    expect(result.current.summary).toBeNull();
+    expect(result.current.byStop.size).toBe(0);
+  });
+
+  it('spends no call measuring an empty run', async () => {
+    const { rerender } = renderHook<RouteEtaSlice, { stops: ActiveStop[] }>(
+      ({ stops }) => useRouteEta(stops),
+      { wrapper, initialProps: { stops: [A] } },
+    );
+    await waitFor(() => expect(mockGetRouteEta).toHaveBeenCalledTimes(1));
+
+    rerender({ stops: [] });
+
+    expect(mockGetRouteEta).toHaveBeenCalledTimes(1);
+  });
+
+  it('measures again once a new stop is taken in charge', async () => {
+    const { result, rerender } = renderHook<RouteEtaSlice, { stops: ActiveStop[] }>(
+      ({ stops }) => useRouteEta(stops),
+      { wrapper, initialProps: { stops: [A] } },
+    );
+    await waitFor(() => expect(mockGetRouteEta).toHaveBeenCalledTimes(1));
+
+    // Finished, then the driver goes back to the counter for more.
+    rerender({ stops: [] });
+    rerender({ stops: [B] });
+
+    await waitFor(() => expect(mockGetRouteEta).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(result.current.summary).not.toBeNull());
+  });
+
+  /**
+   * One measurement per delivery, and the run has to shrink to zero without
+   * the hook needing a nudge — this is the whole "recalculate after every
+   * finished order" property, walked end to end.
+   */
+  it('re-measures on every delivery until the run is empty', async () => {
+    const { result, rerender } = renderHook<RouteEtaSlice, { stops: ActiveStop[] }>(
+      ({ stops }) => useRouteEta(stops),
+      { wrapper, initialProps: { stops: [A, B, C] } },
+    );
+    await waitFor(() => expect(mockGetRouteEta).toHaveBeenCalledTimes(1));
+
+    rerender({ stops: [B, C] });
+    await waitFor(() => expect(mockGetRouteEta).toHaveBeenCalledTimes(2));
+
+    rerender({ stops: [C] });
+    await waitFor(() => expect(mockGetRouteEta).toHaveBeenCalledTimes(3));
+
+    rerender({ stops: [] });
+    await waitFor(() => expect(result.current.summary).toBeNull());
+    expect(mockGetRouteEta).toHaveBeenCalledTimes(3);
+  });
+});

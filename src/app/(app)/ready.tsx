@@ -13,7 +13,7 @@ import { Space } from '@/design/tokens';
 import { money } from '@/lib/format';
 import { errorNotice } from '@/locale/error-message';
 import { useLocale, useStrings } from '@/locale/locale-provider';
-import { usePickup } from '@/queue/mutations';
+import { useOptimize, usePickup } from '@/queue/mutations';
 import { useQueueSlices } from '@/queue/use-queue';
 
 /**
@@ -28,6 +28,32 @@ import { useQueueSlices } from '@/queue/use-queue';
  * A failure on one order never blocks the rest. `Promise.allSettled`, not
  * `Promise.all`: an order the admin reassigned thirty seconds ago answers 404
  * or 409, and that must cost the driver one card, not the whole batch.
+ *
+ * SEQUENCING HAPPENS HERE
+ *
+ * Taking charge is the moment the run stops changing shape: the driver has
+ * decided which bags are going in the van, and they are still standing in the
+ * pharmacy where the route is solved from. Optimizing at any earlier point
+ * sequences orders that may not be taken; at any later one the driver is
+ * already driving, and the first stop was chosen by whatever order the cards
+ * happened to be in. So the batch pickup is followed by exactly one
+ * `POST /v1/driver/queue/optimize`.
+ *
+ * It runs after the pickups rather than alongside them: the endpoint sequences
+ * the stops the *server* holds, so a request that overtakes the last pickup
+ * would order a run that is missing bags the driver is holding.
+ *
+ * THREE OUTCOMES, THREE DIFFERENT THINGS TO SAY
+ *
+ *   ordered      → nothing to say; the list is already in the new order
+ *   `degraded`   → the provider failed and the server kept the previous
+ *                  sequence. `QueueScreen` already banners this from
+ *                  `query.data.degraded`, on every tab, so it is not repeated
+ *                  here.
+ *   threw        → no sequence was written at all. Nothing else in the app
+ *                  surfaces that, which is what the banner below is for: it
+ *                  says the run is unoptimized and offers the retry, because
+ *                  the pickups themselves succeeded and must not look failed.
  */
 export default function ReadyScreen() {
   const { query, slices } = useQueueSlices();
@@ -36,10 +62,16 @@ export default function ReadyScreen() {
   const theme = useTheme();
 
   const pickup = usePickup();
+  const optimize = useOptimize();
   const [selected, setSelected] = useState<ReadonlySet<string>>(new Set());
   const [checking, setChecking] = useState(false);
   const [progress, setProgress] = useState<[number, number] | undefined>();
   const [batchError, setBatchError] = useState<Error | null>(null);
+  /*
+    Only the case nothing else reports. `degraded` is a server-side answer that
+    `QueueScreen` already banners; this is the call not landing at all.
+  */
+  const [routeUnsequenced, setRouteUnsequenced] = useState(false);
 
   const stops = slices.ready;
   const chosen = useMemo(
@@ -91,6 +123,30 @@ export default function ReadyScreen() {
     setProgress(undefined);
     setChecking(false);
     setSelected(new Set());
+
+    // Nothing went into the van, so there is nothing to sequence — and asking
+    // would spend a Route Optimization call to reorder the day the driver
+    // just failed to start.
+    if (results.some((result) => result.status === 'fulfilled')) {
+      await sequenceRun();
+    }
+  }
+
+  /**
+   * Orders the run the driver just took charge of.
+   *
+   * Deliberately not `mutate`: the outcome decides what the screen says, and
+   * a rejected promise here is the only signal that no sequence was written.
+   * A throw is not rethrown — the bags are already in the van and the pickups
+   * stand regardless of what the optimizer did.
+   */
+  async function sequenceRun() {
+    setRouteUnsequenced(false);
+    try {
+      await optimize.mutateAsync({});
+    } catch {
+      setRouteUnsequenced(true);
+    }
   }
 
   const notice = batchError ? errorNotice(batchError, t) : null;
@@ -123,6 +179,28 @@ export default function ReadyScreen() {
             ) : null}
             {notice ? (
               <Banner tone="danger" icon="alert-circle-outline" message={notice.message} />
+            ) : null}
+            {/*
+              The driver has bags in hand and is about to walk out; the run
+              being sequenced or not changes which door they go to first, so
+              it is worth a line while it happens.
+            */}
+            {optimize.isPending ? (
+              <Banner tone="neutral" icon="git-branch-outline" message={t.optimizing} />
+            ) : null}
+            {routeUnsequenced ? (
+              <Banner
+                tone="caution"
+                icon="git-branch-outline"
+                message={t.optimizeFailed}
+                action={
+                  <SecondaryAction
+                    label={t.retry}
+                    onPress={() => void sequenceRun()}
+                    style={styles.retry}
+                  />
+                }
+              />
             ) : null}
           </>
         }
@@ -188,4 +266,5 @@ export default function ReadyScreen() {
 
 const styles = StyleSheet.create({
   footer: { gap: Space.sm },
+  retry: { flex: 0 },
 });

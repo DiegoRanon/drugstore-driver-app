@@ -11,6 +11,8 @@
  *   - a stop added mid-shift, or a re-optimize → same
  *   - the 30-second queue poll returning an unchanged run → *same key*, so
  *     nothing is fetched and no Routes API call is billed
+ *   - the *last* stop delivered → the run is empty → no estimate at all,
+ *     rather than the previous one left standing over an empty screen
  *
  * The optimistic cache is what changes the key instantly: `applyComplete`
  * removes the stop the moment the driver taps Delivered. If the mutation then
@@ -85,27 +87,42 @@ export function useRouteEta(stops: ActiveStop[], date?: string): RouteEtaSlice {
   */
   const writing = useIsMutating({ mutationKey: QUEUE_MUTATION_KEY });
 
+  /*
+    The last stop has been delivered. Not the same as "between measurements":
+    there is no run left, so there is no finish time — and the previous one
+    described a van that is now empty.
+  */
+  const finished = orderedIds.length === 0;
+
   const query = useQuery({
     queryKey: routeEtaQueryKey(orderedIds),
     queryFn: () => getRouteEta({ date }),
     // Nothing to measure, and nothing worth spending a call on.
-    enabled: orderedIds.length > 0 && writing === 0,
+    enabled: !finished && writing === 0,
     staleTime: ETA_STALE_MS,
-    // The previous run's estimate while the new one loads, rather than a
-    // banner that blinks out every time a stop is delivered.
-    placeholderData: (previous) => previous,
+    /*
+      The previous run's estimate while the new one loads, rather than a
+      banner that blinks out every time a stop is delivered — but never into
+      the finished state. Carrying it there is what left "48 min · 23 km"
+      above an empty list after the last delivery.
+    */
+    placeholderData: finished ? undefined : (previous) => previous,
   });
 
   const byStop = useMemo(() => {
     const map = new Map<string, EtaStop>();
+    if (finished) return map;
     if (query.data && !query.data.degraded) {
       for (const stop of query.data.stops) map.set(stop.order_id, stop);
     }
     return map;
-  }, [query.data]);
+  }, [query.data, finished]);
 
   const summary = useMemo(() => {
     const eta = query.data;
+    // Nothing left to drive. Held here as well as in the query so the banner
+    // goes on the delivery, not one render later when the fetch is skipped.
+    if (finished) return null;
     // `degraded` means the provider could not measure. Showing a zeroed
     // summary would read as "you are finished", which is the opposite.
     if (!eta || eta.degraded || eta.stops.length === 0) return null;
@@ -116,7 +133,7 @@ export function useRouteEta(stops: ActiveStop[], date?: string): RouteEtaSlice {
       totalDistanceMeters: eta.total_distance_meters,
       unestimatedCount: eta.unestimated_order_ids.length,
     };
-  }, [query.data]);
+  }, [query.data, finished]);
 
   return { query, byStop, summary };
 }

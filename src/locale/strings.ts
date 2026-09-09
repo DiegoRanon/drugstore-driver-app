@@ -73,6 +73,8 @@ const fr = {
   codeLabel: "Code d'invitation à 8 caractères",
   paste: 'Coller',
   optimize: 'Optimiser la route',
+  optimizing: 'Optimisation de la route…',
+  optimizeFailed: "Route non optimisée — les arrêts sont dans l'ordre précédent.",
   themeDark: 'Mode nuit',
   themeLight: 'Mode jour',
 
@@ -323,6 +325,8 @@ const en: Strings = {
   codeLabel: '8-character invite code',
   paste: 'Paste',
   optimize: 'Optimize route',
+  optimizing: 'Optimizing route…',
+  optimizeFailed: 'Route not optimized — stops are in their previous order.',
   themeDark: 'Night mode',
   themeLight: 'Day mode',
 
