@@ -1,7 +1,7 @@
 {
   "openapi": "3.0.3",
   "info": {
-    "title": "Drugstore Delivery API",
+    "title": "Medibus Delivery API",
     "description": "B2B pharmacy delivery logistics. Carries no medical, pharmaceutical, or prescription data.",
     "version": "1.0.0"
   },

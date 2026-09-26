@@ -44,7 +44,7 @@ if (shouldLaunch) {
       'am',
       'start',
       '-n',
-      'com.anonymous.drugstoredriverapp/.MainActivity',
+      'com.anonymous.medibusdriverapp/.MainActivity',
     ],
     { stdio: 'inherit' },
   );

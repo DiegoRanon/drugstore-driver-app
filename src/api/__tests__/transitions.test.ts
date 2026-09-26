@@ -4,7 +4,7 @@
  * `available_transitions` is on the admin `orderResponse` only — no driver
  * payload carries it — so the app has to hold this table itself. That makes
  * drift the risk, and these cases are the cheap half of guarding against it:
- * they pin the table against `drugstore-server/docs/delivery-workflow.md`.
+ * they pin the table against `medibus-server/docs/delivery-workflow.md`.
  * The expensive half is `live-server-transitions.test.ts`, which walks a real
  * order through every state.
  */

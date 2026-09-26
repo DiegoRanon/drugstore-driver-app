@@ -23,7 +23,7 @@ Prioritize:
 
 Before modifying API requests:
 
-- Inspect the corresponding endpoint in ../drugstore-server.
+- Inspect the corresponding endpoint in ../medibus-server.
 - Confirm the admin dashboard displays the updated state correctly.
 
 Live updates:

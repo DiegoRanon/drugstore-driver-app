@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "drugstore-driver-app",
-    "slug": "drugstore-driver-app",
+    "name": "medibus-driver-app",
+    "slug": "medibus-driver-app",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "drugstoredriverapp",
+    "scheme": "medibusdriverapp",
     "userInterfaceStyle": "automatic",
     "ios": {
       "icon": "./assets/expo.icon"
@@ -18,7 +18,7 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.anonymous.drugstoredriverapp"
+      "package": "com.anonymous.medibusdriverapp"
     },
     "web": {
       "output": "static",

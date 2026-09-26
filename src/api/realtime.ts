@@ -8,7 +8,7 @@
  * ## What arrives here
  *
  * Frames, not data. The server sends `{ order_id, delivery_date, status }` and
- * deliberately nothing else (drugstore-server/docs/realtime.md): patient names
+ * deliberately nothing else (medibus-server/docs/realtime.md): patient names
  * and addresses reach this device through `GET /v1/driver/queue` and its driver
  * serializer, or not at all. So the only correct reaction to a frame is to
  * refetch — never to render it.
@@ -18,7 +18,7 @@ import { io, type Socket } from 'socket.io-client';
 import { API_BASE_URL } from './http';
 import { getValidAccessToken } from './refresh';
 
-/** Must match REALTIME_PATH in drugstore-server/src/realtime/server.ts. */
+/** Must match REALTIME_PATH in medibus-server/src/realtime/server.ts. */
 export const REALTIME_PATH = '/v1/realtime';
 
 /** The four the server publishes to a driver (PRD §7). */

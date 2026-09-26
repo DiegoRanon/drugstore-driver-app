@@ -1,8 +1,8 @@
 # Database Schema Reference
 
-PostgreSQL schema for the Drugstore Delivery B2B server, as of migration `009_schema_hardening`.
+PostgreSQL schema for the Medibus Delivery B2B server, as of migration `009_schema_hardening`.
 
-**Source of truth:** the SQL files in `database/migrations/`. This document is a human-readable snapshot of the applied result (base schema `drugstore_delivery_schema.sql` plus migrations `001`–`009`). The migrator also creates `schema_migrations`.
+**Source of truth:** the SQL files in `database/migrations/`. This document is a human-readable snapshot of the applied result (base schema `medibus_delivery_schema.sql` plus migrations `001`–`009`). The migrator also creates `schema_migrations`.
 
 **Scope:** logistics only. No medical, pharmaceutical, or prescription data is modeled.
 
@@ -73,7 +73,7 @@ Created by the migrator (`src/db/migrator.ts`), not by a `.sql` file.
 
 ### `organizations`
 
-Drugstores / pharmacies — the B2B tenants.
+Medibuss / pharmacies — the B2B tenants.
 
 | Column | Type | Null | Default | Notes |
 | --- | --- | --- | --- | --- |
@@ -215,7 +215,7 @@ One delivery attempt. Logistics data only. Client name/address/phone are snapsho
 | `cooler_bag_confirmed` | `BOOLEAN` | YES | | Post-delivery QC check. |
 | `picked_up_at` | `TIMESTAMPTZ` | YES | | |
 | `completed_at` | `TIMESTAMPTZ` | YES | | Required when `status = 'completed'`. |
-| `returned_at` | `TIMESTAMPTZ` | YES | | Required when `status = 'returned'`. Patient unavailable; package back at the drugstore. |
+| `returned_at` | `TIMESTAMPTZ` | YES | | Required when `status = 'returned'`. Patient unavailable; package back at the medibus. |
 | `cancelled_at` | `TIMESTAMPTZ` | YES | | Required when `status = 'cancelled'`. Order never left the pharmacy. Excluded from success-rate. |
 | `created_at` | `TIMESTAMPTZ` | NO | `now()` | |
 | `updated_at` | `TIMESTAMPTZ` | NO | `now()` | Maintained by `trg_orders_updated_at`. Used by `?updated_since=` polling. |
@@ -534,7 +534,7 @@ Once an order is terminal (`completed`, `returned`, or `cancelled`), the API sho
 
 | File | Effect |
 | --- | --- |
-| `drugstore_delivery_schema.sql` | Base schema (recorded as `000_base_schema`). Includes `returned` status. |
+| `medibus_delivery_schema.sql` | Base schema (recorded as `000_base_schema`). Includes `returned` status. |
 | `001_add_returned_order_status.sql` | Legacy-only: `returned` enum + `returned_at`. Baselined on fresh installs. |
 | `002_cancelled_status_enum.sql` | Adds `cancelled` to `order_status`. Runs outside a transaction. |
 | `003_cancelled_status_columns.sql` | `orders.cancelled_at` + terminal-timestamp constraint. |

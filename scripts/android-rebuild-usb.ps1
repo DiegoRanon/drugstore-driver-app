@@ -22,7 +22,7 @@ $buildPackage = Join-Path $buildRoot 'package.json'
 
 if (Test-Path $buildPackage) {
   $packageName = (Get-Content $buildPackage -Raw | ConvertFrom-Json).name
-  if ($packageName -ne 'drugstore-driver-app') {
+  if ($packageName -ne 'medibus-driver-app') {
     throw "Refusing to use $buildRoot because it belongs to another project."
   }
 }
@@ -87,7 +87,7 @@ Invoke-Checked $adb @(
   'am',
   'start',
   '-n',
-  'com.anonymous.drugstoredriverapp/.MainActivity'
+  'com.anonymous.medibusdriverapp/.MainActivity'
 )
 
 Write-Host "App rebuilt, installed, and launched on $Serial."

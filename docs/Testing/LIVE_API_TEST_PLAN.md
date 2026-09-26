@@ -4,7 +4,7 @@ Companion to [MVP_V1.md](../Plans/MVP_V1.md). That document says what was built 
 this one is the procedure for proving it still works **against the real server with real
 data**, not against fixtures.
 
-Everything below was executed end to end on **2026-08-23** against `drugstore-server` on
+Everything below was executed end to end on **2026-08-23** against `medibus-server` on
 `localhost:3000`. Expected values are what the server actually returned, not what the spec
 promises.
 
@@ -40,7 +40,7 @@ promises.
 ## 2. Prerequisites
 
 ```bash
-# in ../drugstore-server
+# in ../medibus-server
 docker compose up -d          # postgres :5433, redis :6379
 npm run migrate && npm run seed
 npm run dev                   # :3000

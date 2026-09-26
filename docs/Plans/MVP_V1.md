@@ -2,11 +2,11 @@
 
 ## Context
 
-drugstore-driver-app is currently the stock Expo SDK 57 template (src/app/index.tsx is still the "Welcome to Expo" screen). The server it talks to is complete and running locally at ../drugstore-server: the full driver flow — login, invite registration, queue, pickup/complete/return, payment, cooler-check, route optimize with a degraded contract, and Idempotency-Key on every mutation — is built and verified.
+medibus-driver-app is currently the stock Expo SDK 57 template (src/app/index.tsx is still the "Welcome to Expo" screen). The server it talks to is complete and running locally at ../medibus-server: the full driver flow — login, invite registration, queue, pickup/complete/return, payment, cooler-check, route optimize with a degraded contract, and Idempotency-Key on every mutation — is built and verified.
 
 > **Revised after the server moved.** The backend was rebuilt against the pharmacy's real workflow (docs/Plans/domain_workflow.md) and now has a different state machine: an order is born `scheduled` and invisible to drivers, and `returned` is no longer terminal — `picked_up → returned → returned_to_pharmacy`, where the middle state means the package is in the driver's van. The vendored openapi.json was eight days stale when this was noticed, and every type in the app described an API that no longer existed.
 >
-> **Re-syncing openapi.json is step one of any future feature here.** Copy ../drugstore-server/openapi.json over the local one, run `npm run api:types`, and let `npm run typecheck` produce the work list. Feature 4.5 below is what that produced this time.
+> **Re-syncing openapi.json is step one of any future feature here.** Copy ../medibus-server/openapi.json over the local one, run `npm run api:types`, and let `npm run typecheck` produce the work list. Feature 4.5 below is what that produced this time.
 
 The goal of this plan is the MVP defined in docs/PRD.md: a driver-facing app that renders what /v1 tells it and lets a driver finish each doorstep interaction in one tap. Deployment is explicitly out of scope — no EAS Build/Submit, no store config, no OTA, no Sentry wiring. Development runs in Expo Go.
 
@@ -108,7 +108,7 @@ npm run api:types → openapi-typescript openapi.json -o src/api/schema.d.ts. Th
 
 src/api/types.ts — named aliases derived from paths[...]. The driver stop type is the union ActiveStop | ClosedStop, extracted from the queue payload and discriminated on status, plus isActiveStop / isClosedStop so no screen re-derives the narrowing. The hand-written shapes in src/design/fixtures.ts are gone: the fixtures and the Feature 1 components now type-check against the generated aliases, so a server change breaks the build rather than the screen.
 
-src/api/errors.ts — ApiError from the { error: { code, message, details } } envelope, with request_id lifted off the x-request-id header and idempotent-replay noted. Codes checked against the server's own registry (drugstore-server/src/core/errors.ts) rather than copied from the dashboard, which corrected two things: the expired-access-token code is TOKEN_EXPIRED (the dashboard's INVALID_TOKEN does not exist server-side), and the terminal set is INVALID_REFRESH_TOKEN / UNAUTHENTICATED / ACCOUNT_DISABLED. Also carries isRetriable, encoding the corrected dead-entry rule that Feature 5 drains on.
+src/api/errors.ts — ApiError from the { error: { code, message, details } } envelope, with request_id lifted off the x-request-id header and idempotent-replay noted. Codes checked against the server's own registry (medibus-server/src/core/errors.ts) rather than copied from the dashboard, which corrected two things: the expired-access-token code is TOKEN_EXPIRED (the dashboard's INVALID_TOKEN does not exist server-side), and the terminal set is INVALID_REFRESH_TOKEN / UNAUTHENTICATED / ACCOUNT_DISABLED. Also carries isRetriable, encoding the corrected dead-entry rule that Feature 5 drains on.
 
 src/api/http.ts — raw transport, added beyond the plan to break a genuine import cycle: client.ts owns auth and so needs refresh.ts, while refresh.ts must make one call that does not go through the auth-owning path. Both import http.ts instead of each other. Query strings are built by hand rather than with new URL(), whose RN polyfill is incomplete.
 
@@ -272,13 +272,13 @@ Verification gate: full manual run-through of a 5-stop day in French, then Engli
 
 ## Verification (end-to-end)
 
-Start the backend from ../drugstore-server:
+Start the backend from ../medibus-server:
 
 docker compose up -d # postgres :5433, redis :6379
 npm run migrate && npm run seed
 npm run dev # :3000
 
-Seeded driver accounts (password DevPassword123!): driver@stlaurent.example.ca (FR org) and driver@riverside.example.ca (EN org). Two organizations exist deliberately — cross-org isolation shows up as visible data, not an empty list. Orders are created/assigned from the admin dashboard at ../drugstore-admin-dashboard (npm run dev, :3001).
+Seeded driver accounts (password DevPassword123!): driver@stlaurent.example.ca (FR org) and driver@riverside.example.ca (EN org). Two organizations exist deliberately — cross-org isolation shows up as visible data, not an empty list. Orders are created/assigned from the admin dashboard at ../medibus-admin-dashboard (npm run dev, :3001).
 
 App: EXPO_PUBLIC_API_URL=http://<LAN-IP>:3000 npx expo start, then Expo Go. Per-feature gates above; `npm run typecheck`, `npm test`, and `npm run verify:api` must be clean at every gate.
 
@@ -296,7 +296,7 @@ A full day, end to end:
 
 ## Server gaps to raise
 
-> Specified in full, with workflow citations, API shapes, and acceptance criteria, in **docs/Plans/SERVER_CHANGES_PRD.md** — the document to hand to whoever owns ../drugstore-server. What follows is the app-side summary; the two must be kept in step.
+> Specified in full, with workflow citations, API shapes, and acceptance criteria, in **docs/Plans/SERVER_CHANGES_PRD.md** — the document to hand to whoever owns ../medibus-server. What follows is the app-side summary; the two must be kept in step.
 
 Re-audited against the running server and the live schema on 2026-08-23, not against the spec alone — several of these are cases where `openapi.json` and the implementation disagree.
 
@@ -326,7 +326,7 @@ Re-audited against the running server and the live schema on 2026-08-23, not aga
 
 ### Closed since this list was written
 
-`POST /v1/driver/queue/sequence` (manual reordering), `updated_since` on the driver queue, a required `reason` on return, the `returned → returned_to_pharmacy` handover leg with both a per-order and a batch endpoint, per-order priority, package label codes, and `requested_delivery_time`. The server-side specification for these lives in SERVER_CHANGES_PRD.md; the delivered shapes are in ../drugstore-server/docs/api-contracts.md.
+`POST /v1/driver/queue/sequence` (manual reordering), `updated_since` on the driver queue, a required `reason` on return, the `returned → returned_to_pharmacy` handover leg with both a per-order and a batch endpoint, per-order priority, package label codes, and `requested_delivery_time`. The server-side specification for these lives in SERVER_CHANGES_PRD.md; the delivered shapes are in ../medibus-server/docs/api-contracts.md.
 
 **Trivial:** `POST /v1/invites/` rejects a body-less request with `VALIDATION_FAILED` ("Expected object, received null") even though every field in its schema is optional. `{}` works. Papercut, not a defect.
 

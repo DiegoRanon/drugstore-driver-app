@@ -34,7 +34,7 @@ const SESSION_KEY = 'driver.session.v1';
  * locked in a driver's pocket.
  */
 const OPTIONS: SecureStore.SecureStoreOptions = {
-  keychainService: 'drugstore-driver',
+  keychainService: 'medibus-driver',
   keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY,
 };
 

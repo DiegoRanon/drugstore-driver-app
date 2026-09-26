@@ -14,7 +14,7 @@
  * succeeds, and every one it withholds is refused. A rule the server adds or
  * removes fails here rather than as a dead button in a stairwell.
  *
- *     cd ../drugstore-server && docker compose up -d && npm run dev
+ *     cd ../medibus-server && docker compose up -d && npm run dev
  *     npm run verify:api
  *
  * It writes. Both orders are walked to a terminal state or cancelled in a

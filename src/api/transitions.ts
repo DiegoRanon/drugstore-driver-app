@@ -1,7 +1,7 @@
 /**
  * What a driver may do to an order in a given state.
  *
- * This mirrors `drugstore-server/src/modules/orders/stateMachine.ts`, and it
+ * This mirrors `medibus-server/src/modules/orders/stateMachine.ts`, and it
  * lives in `src/api/` rather than in a component because it is *contract* —
  * the same kind of thing as a request body — not presentation.
  *

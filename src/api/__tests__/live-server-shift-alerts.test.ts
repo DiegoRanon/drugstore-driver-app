@@ -24,7 +24,7 @@
  * order and cancels it in a `finally`, so a failed assertion cannot leave a
  * phantom delivery in the development environment.
  *
- *     cd ../drugstore-server && docker compose up -d && npm run dev
+ *     cd ../medibus-server && docker compose up -d && npm run dev
  *     npm run verify:api
  *
  * Never point this at an environment holding real patient records (PRD §8.3).

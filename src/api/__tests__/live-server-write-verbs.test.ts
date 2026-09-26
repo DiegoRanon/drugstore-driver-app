@@ -14,7 +14,7 @@
  * together, even though it opens from On the way — and this is the assertion
  * that says the reason is real rather than folklore.
  *
- *     cd ../drugstore-server && docker compose up -d && npm run dev
+ *     cd ../medibus-server && docker compose up -d && npm run dev
  *     npm run verify:api
  *
  * It writes, and cleans up in a `finally`. Never point it at an environment

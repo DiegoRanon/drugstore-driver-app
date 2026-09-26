@@ -17,7 +17,7 @@
  * Excluded from `npm test` (see `testPathIgnorePatterns`) because it needs a
  * backend. Run it deliberately:
  *
- *     cd ../drugstore-server && docker compose up -d && npm run migrate && npm run seed && npm run dev
+ *     cd ../medibus-server && docker compose up -d && npm run migrate && npm run seed && npm run dev
  *     npm run verify:api
  *
  * It only reads: a login and two GETs. It records no deliveries.
@@ -138,7 +138,7 @@ describe('live server', () => {
     } catch (cause) {
       throw new Error(
         `Cannot reach the API at ${API_BASE_URL}. Start it with:\n` +
-          `  cd ../drugstore-server && npm run dev\n` +
+          `  cd ../medibus-server && npm run dev\n` +
           `Original error: ${String(cause)}`,
       );
     }
@@ -206,7 +206,7 @@ describe('live server', () => {
     if (!found) {
       throw new Error(
         'No delivery day with orders in the last 30 days. Re-seed the server ' +
-          '(cd ../drugstore-server && npm run seed) or assign orders from the dashboard.',
+          '(cd ../medibus-server && npm run seed) or assign orders from the dashboard.',
       );
     }
     if (!found.hasBothBranches) {

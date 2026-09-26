@@ -1,6 +1,6 @@
 # PRD — Driver App (React Native)
 
-**Product:** Drugstore Delivery App B2B
+**Product:** Medibus Delivery App B2B
 **Component:** Driver-facing mobile app (iOS + Android)
 **Status:** Development Planning
 **Version:** 0.1 (MVP) — written against server API v1; driver flow verified by 128 server tests and 49 black-box HTTP checks

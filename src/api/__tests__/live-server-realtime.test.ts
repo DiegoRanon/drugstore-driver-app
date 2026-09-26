@@ -17,7 +17,7 @@
  * cancels it in a `finally`, so a failed assertion cannot leave a phantom
  * delivery behind.
  *
- *     cd ../drugstore-server && docker compose up -d && npm run dev
+ *     cd ../medibus-server && docker compose up -d && npm run dev
  *     npm run verify:api
  *
  * Never point this at an environment holding real patient records (PRD §8.3).
@@ -121,7 +121,7 @@ describe('an order assigned while the app is open', () => {
       expect(payload.order_id).toBe(orderId);
       expect(payload.status).toBe('in_pharmacy');
 
-      // The frame is a signal, not data (drugstore-server/docs/realtime.md).
+      // The frame is a signal, not data (medibus-server/docs/realtime.md).
       // Asserted against the live server rather than a fixture, because this
       // is the one place a serializer change on the other side would show up.
       expect(Object.keys(payload).sort()).toEqual([

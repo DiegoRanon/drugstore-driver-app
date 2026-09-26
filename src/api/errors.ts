@@ -1,7 +1,7 @@
 /**
  * The server's failure envelope, normalized.
  *
- * Verified against `drugstore-server/src/core/errors.ts`: the body is
+ * Verified against `medibus-server/src/core/errors.ts`: the body is
  * `{ error: { code, message, details } }` and the correlation id arrives as
  * the `x-request-id` *header*, not a body field. `request_id` is what ties a
  * driver's report to the server logs, so it is lifted onto the error here and

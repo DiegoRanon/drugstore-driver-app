@@ -78,7 +78,7 @@ export type Stop = QueueResponse['stops'][number];
  * Carries PII — and is *defined* by that fact rather than by a status list.
  *
  * The server's cliff is `PII_VISIBLE_STATUSES`, which is deliberately not the
- * terminal set (`drugstore-server/docs/privacy-rules.md` §1). Deriving the
+ * terminal set (`medibus-server/docs/privacy-rules.md` §1). Deriving the
  * branch from `patient_name` rather than from a hand-written status union
  * means the two cannot drift: if the server ever makes another status
  * PII-visible, it lands in this type on the next `npm run api:types`.

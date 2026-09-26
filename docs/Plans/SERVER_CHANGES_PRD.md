@@ -1,7 +1,7 @@
 # PRD — Server changes to match the pharmacy's real workflow
 
-**Target repo:** `../drugstore-server` (Fastify 5 · zod · knex · Postgres · Redis)
-**Raised by:** drugstore-driver-app
+**Target repo:** `../medibus-server` (Fastify 5 · zod · knex · Postgres · Redis)
+**Raised by:** medibus-driver-app
 **Status:** Requirements — not yet scheduled
 **Source documents:** `docs/Plans/domain_workflow.md`, `docs/Plans/MVP_V1.md`, `docs/PRD.md`
 
@@ -19,7 +19,7 @@ Each requirement below names the workflow sentence that motivates it. If a requi
 
 ### In scope
 
-Changes to `../drugstore-server`: schema migrations, the `/v1` contract, driver and admin endpoints, and the push delivery path.
+Changes to `../medibus-server`: schema migrations, the `/v1` contract, driver and admin endpoints, and the push delivery path.
 
 ### Out of scope
 
